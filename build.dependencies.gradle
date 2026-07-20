@@ -2,8 +2,9 @@ repositories {
     mavenCentral()
     google() // Needed for androidx
     maven { url = "https://mymaven.bylazar.com/releases" }
-}
+    maven { url = 'https://jitpack.io' }   // thêm dòng này, bỏ khối allprojects bên dưới
 
+}
 dependencies {
     implementation 'org.firstinspires.ftc:Inspection:11.1.0'
     implementation 'org.firstinspires.ftc:Blocks:11.1.0'
@@ -19,5 +20,7 @@ dependencies {
     implementation 'com.pedropathing:telemetry:1.0.0'
     implementation 'com.bylazar:fullpanels:1.0.12'
     implementation 'com.pedropathing:ivy:1.0.0'
+    implementation 'com.github.mik3y:usb-serial-for-android:3.10.0'
+
 }
 

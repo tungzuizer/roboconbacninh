@@ -1,202 +1,216 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
-import com.bylazar.configurables.PanelsConfigurables;
-import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Servo;
 
 /**
- * Tune từng khớp servo bằng FTControl Panels.
- *
- * Cách dùng:
- * 1. Chạy TeleOp "Servo Panels Tuner".
- * 2. Mở Panels → chỉnh các biến static bên dưới.
- * 3. Bật APPLY = true để servo chạy theo giá trị trên Panels.
- * 4. Tune từng khớp bằng SELECTED_SERVO hoặc tune theo từng ô bằng SELECTED_SLOT.
+ * Tuner Servo SIÊU DỄ — TỰ ĐỘNG NHẬN DIỆN SLIDER.
+ * 
+ * CÁCH DÙNG:
+ * - QUÊN HẾT TUNER_MODE VÀ TUNER_SELECTED_SLOT ĐI!
+ * - Bạn chỉ cần kéo slider (ví dụ BL_S1), robot sẽ TỰ ĐỘNG chuyển sang tư thế BL và xoay theo.
+ * - Kéo HOME_S2? Robot tự về thế Home.
  */
-@Configurable
-@TeleOp(name = "Servo Panels Tuner", group = "Tuning")
+@TeleOp(name = "Servo Panels Tuner (Siêu Dễ)", group = "Tuning")
 public class ServoPanelsTuner extends LinearOpMode {
 
-    // ╔══════════════════════════════════════════════════════════╗
-    // ║  ZONE 1: TUNE TRÊN PANELS                              ║
-    // ╚══════════════════════════════════════════════════════════╝
-
-    // Bật/tắt apply. Để false khi mới mở để tránh servo nhảy bất ngờ.
-    public static boolean APPLY = false;
-
-    // Chế độ tune:
-    // 0 = tune từng servo riêng bằng SELECTED_SERVO + SERVO_POS
-    // 1 = tune theo 1 ô: set cả 5 servo bằng TOP_LEFT/TOP_RIGHT/BOT_LEFT/BOT_RIGHT
-    // 2 = reset tất cả servo về HOME
-    public static int MODE = 0;
-
-    // Dùng khi MODE = 0
-    // 1=s1, 2=s2, 3=s3, 4=s4, 5=s5
-    public static int SELECTED_SERVO = 1;
-    public static double SERVO_POS = 0.50;
-
-    // Dùng khi MODE = 1
-    // 0=TOP_LEFT, 1=TOP_RIGHT, 2=BOT_LEFT, 3=BOT_RIGHT
-    public static int SELECTED_SLOT = 0;
-
-    // Tên servo trong Robot Config
-    public static String NAME_S1 = "s1";
-    public static String NAME_S2 = "s2";
-    public static String NAME_S3 = "s3";
-    public static String NAME_S4 = "s4";
-    public static String NAME_S5 = "s5";
-
-    // HOME an toàn
-    public static double S1_HOME = 0.50;
-    public static double S2_HOME = 0.50;
-    public static double S3_HOME = 0.50;
-    public static double S4_HOME = 0.50;
-    public static double S5_HOME = 0.50;
-
-    // Ô TRÊN - TRÁI
-    public static double TL_S1 = 0.10;
-    public static double TL_S2 = 0.20;
-    public static double TL_S3 = 0.30;
-    public static double TL_S4 = 0.40;
-    public static double TL_S5 = 0.50;
-
-    // Ô TRÊN - PHẢI
-    public static double TR_S1 = 0.20;
-    public static double TR_S2 = 0.30;
-    public static double TR_S3 = 0.40;
-    public static double TR_S4 = 0.50;
-    public static double TR_S5 = 0.60;
-
-    // Ô DƯỚI - TRÁI
-    public static double BL_S1 = 0.70;
-    public static double BL_S2 = 0.80;
-    public static double BL_S3 = 0.90;
-    public static double BL_S4 = 1.00;
-    public static double BL_S5 = 0.10;
-
-    // Ô DƯỚI - PHẢI
-    public static double BR_S1 = 0.50;
-    public static double BR_S2 = 0.60;
-    public static double BR_S3 = 0.70;
-    public static double BR_S4 = 0.80;
-    public static double BR_S5 = 0.90;
-
-    // ╔══════════════════════════════════════════════════════════╗
-    // ║  CODE CHÍNH                                             ║
-    // ╚══════════════════════════════════════════════════════════╝
-
     private Servo s1, s2, s3, s4, s5;
+    private Servo drop1;
+    private PCA9685 pca9685;
+    private boolean dropReady = false;
+    private boolean pcaReady = false;
+
+    // Lưu trữ giá trị cũ để phát hiện bạn vừa kéo slider nào
+    private BoxAutoPanels.PickServoSet lastHome, lastTL, lastTR, lastBL, lastBR;
+    private BoxAutoPanels.PickServoSet lastDep1, lastDep2, lastDep3, lastDep4;
+    private BoxAutoPanels.DropServoSet lastDropHome, lastDropRel;
+    
+    private String currentPoseName = "ĐANG TÌM KIẾM...";
 
     @Override
     public void runOpMode() {
-        PanelsConfigurables.INSTANCE.refreshClass(this);
+        s1 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S1);
+        s2 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S2);
+        s3 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S3);
+        s4 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S4);
+        s5 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S5);
 
-        s1 = hardwareMap.get(Servo.class, NAME_S1);
-        s2 = hardwareMap.get(Servo.class, NAME_S2);
-        s3 = hardwareMap.get(Servo.class, NAME_S3);
-        s4 = hardwareMap.get(Servo.class, NAME_S4);
-        s5 = hardwareMap.get(Servo.class, NAME_S5);
+        initDropIfEnabled();
+        
+        // Cập nhật giá trị ban đầu
+        BoxAutoPanels.refresh();
+        updateLastValues();
+        applyPickSet(BoxAutoPanels.pickHome());
+        currentPoseName = "HOME (Khởi động)";
 
-        // Về home khi Init để an toàn
-        setHome();
-
-        telemetry.addLine("Servo Panels Tuner ready");
-        telemetry.addLine("APPLY=false lúc đầu để tránh servo nhảy bất ngờ");
+        telemetry.addLine("=== CHẾ ĐỘ TUNE SIÊU DỄ ===");
+        telemetry.addLine("CHỈ CẦN KÉO SLIDER LÀ ROBOT TỰ ĐỔI TƯ THẾ!");
         telemetry.update();
+
+        // Chạy ngay trong lúc INIT
+        while (opModeInInit()) {
+            smartPollAndApply();
+            if (isStopRequested()) return;
+        }
 
         waitForStart();
 
         while (opModeIsActive()) {
-            PanelsConfigurables.INSTANCE.refreshClass(this);
+            smartPollAndApply();
+        }
+    }
 
-            if (APPLY) {
-                if (MODE == 0) {
-                    applySingleServo();
-                } else if (MODE == 1) {
-                    applySlot();
-                } else if (MODE == 2) {
-                    setHome();
-                }
+    private void smartPollAndApply() {
+        BoxAutoPanels.refresh();
+        initDropIfEnabled();
+
+        // 1. Lấy giá trị hiện tại trên Panels
+        BoxAutoPanels.PickServoSet curHome = BoxAutoPanels.pickHome();
+        BoxAutoPanels.PickServoSet curTL = BoxAutoPanels.pickSlot(0);
+        BoxAutoPanels.PickServoSet curTR = BoxAutoPanels.pickSlot(1);
+        BoxAutoPanels.PickServoSet curBL = BoxAutoPanels.pickSlot(2);
+        BoxAutoPanels.PickServoSet curBR = BoxAutoPanels.pickSlot(3);
+        BoxAutoPanels.PickServoSet curDep1 = BoxAutoPanels.depositZone(1);
+        BoxAutoPanels.PickServoSet curDep2 = BoxAutoPanels.depositZone(2);
+        BoxAutoPanels.PickServoSet curDep3 = BoxAutoPanels.depositZone(3);
+        BoxAutoPanels.PickServoSet curDep4 = BoxAutoPanels.depositZone(4);
+        
+        BoxAutoPanels.DropServoSet curDropHome = BoxAutoPanels.dropHome();
+        BoxAutoPanels.DropServoSet curDropRel = BoxAutoPanels.dropReleaseOnField();
+
+        // 2. So sánh xem bộ nào vừa bị thay đổi (bạn vừa kéo slider nào)
+        if (isPickChanged(curBL, lastBL)) {
+            applyPickSet(curBL);
+            currentPoseName = "Ô DƯỚI-TRÁI (BL)";
+        } 
+        else if (isPickChanged(curHome, lastHome)) {
+            applyPickSet(curHome);
+            currentPoseName = "VỊ TRÍ HOME";
+        }
+        else if (isPickChanged(curTL, lastTL)) {
+            applyPickSet(curTL);
+            currentPoseName = "Ô TRÊN-TRÁI (TL)";
+        }
+        else if (isPickChanged(curTR, lastTR)) {
+            applyPickSet(curTR);
+            currentPoseName = "Ô TRÊN-PHẢI (TR)";
+        }
+        else if (isPickChanged(curBR, lastBR)) {
+            applyPickSet(curBR);
+            currentPoseName = "Ô DƯỚI-PHẢI (BR)";
+        }
+        else if (isPickChanged(curDep1, lastDep1)) {
+            applyPickSet(curDep1);
+            currentPoseName = "BỎ VÀO ROBOT - NGĂN 1 (box01)";
+        }
+        else if (isPickChanged(curDep2, lastDep2)) {
+            applyPickSet(curDep2);
+            currentPoseName = "BỎ VÀO ROBOT - NGĂN 2 (box02)";
+        }
+        else if (isPickChanged(curDep3, lastDep3)) {
+            applyPickSet(curDep3);
+            currentPoseName = "BỎ VÀO ROBOT - NGĂN 3 (box03)";
+        }
+        else if (isPickChanged(curDep4, lastDep4)) {
+            applyPickSet(curDep4);
+            currentPoseName = "BỎ VÀO ROBOT - NGĂN 4 (box04)";
+        }
+        else if (isDropChanged(curDropHome, lastDropHome)) {
+            applyDropSet(curDropHome);
+            currentPoseName = "THẢ - HOME";
+        }
+        else if (isDropChanged(curDropRel, lastDropRel)) {
+            applyDropSet(curDropRel);
+            currentPoseName = "THẢ - RA SÂN";
+        }
+
+        // 3. Cập nhật lại giá trị cũ
+        updateLastValues();
+
+        // Hiển thị telemetry đẹp mắt
+        telemetry.addData("Tư thế hiện tại", currentPoseName);
+        telemetry.addLine("--------------------------------");
+        telemetry.addLine("MẸO: Bạn KHÔNG CẦN chỉnh TUNER_MODE.");
+        telemetry.addLine("Cứ kéo thẳng slider (VD: BL_S1 hoặc DEP3_S2),");
+        telemetry.addLine("robot sẽ tự hiểu và xoay theo!");
+        telemetry.update();
+    }
+    
+    // Lưu lại giá trị của vòng lặp hiện tại để so sánh với vòng lặp sau
+    private void updateLastValues() {
+        lastHome = BoxAutoPanels.pickHome();
+        lastTL = BoxAutoPanels.pickSlot(0);
+        lastTR = BoxAutoPanels.pickSlot(1);
+        lastBL = BoxAutoPanels.pickSlot(2);
+        lastBR = BoxAutoPanels.pickSlot(3);
+        lastDep1 = BoxAutoPanels.depositZone(1);
+        lastDep2 = BoxAutoPanels.depositZone(2);
+        lastDep3 = BoxAutoPanels.depositZone(3);
+        lastDep4 = BoxAutoPanels.depositZone(4);
+        lastDropHome = BoxAutoPanels.dropHome();
+        lastDropRel = BoxAutoPanels.dropReleaseOnField();
+    }
+
+    // Hàm kiểm tra xem có servo nào trong set gắp bị thay đổi không
+    private boolean isPickChanged(BoxAutoPanels.PickServoSet cur, BoxAutoPanels.PickServoSet last) {
+        if (last == null) return false;
+        double epsilon = 0.001; // Bỏ qua sai số nhỏ
+        return Math.abs(cur.s1 - last.s1) > epsilon ||
+               Math.abs(cur.s2 - last.s2) > epsilon ||
+               Math.abs(cur.s3 - last.s3) > epsilon ||
+               Math.abs(cur.s4 - last.s4) > epsilon ||
+               Math.abs(cur.s5 - last.s5) > epsilon;
+    }
+    
+    // Hàm kiểm tra xem có servo nào trong set thả bị thay đổi không
+    private boolean isDropChanged(BoxAutoPanels.DropServoSet cur, BoxAutoPanels.DropServoSet last) {
+        if (last == null || !dropReady || !pcaReady) return false;
+        double epsilon = 0.001;
+        return Math.abs(cur.d1 - last.d1) > epsilon ||
+               Math.abs(cur.d2 - last.d2) > epsilon ||
+               Math.abs(cur.d3 - last.d3) > epsilon;
+    }
+
+    private void initDropIfEnabled() {
+        if (!BoxAutoPanels.isDropEnabled()) {
+            dropReady = false;
+            pcaReady = false;
+            return;
+        }
+        if (!dropReady) {
+            try {
+                drop1 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_DROP1);
+                dropReady = true;
+            } catch (Exception e) {
+                dropReady = false;
             }
-
-            telemetry.addData("APPLY", APPLY);
-            telemetry.addData("MODE", modeName());
-            telemetry.addData("SELECTED_SERVO", SELECTED_SERVO);
-            telemetry.addData("SERVO_POS", "%.3f", clamp(SERVO_POS));
-            telemetry.addData("SELECTED_SLOT", slotName(SELECTED_SLOT));
-            telemetry.addLine("Copy giá trị đã tune sang test.java ZONE 1");
-            telemetry.update();
+        }
+        if (!pcaReady) {
+            try {
+                pca9685 = hardwareMap.get(PCA9685.class, BoxAutoPanels.NAME_PCA9685);
+                pcaReady = true;
+            } catch (Exception e) {
+                pcaReady = false;
+            }
         }
     }
 
-    private void applySingleServo() {
-        double p = clamp(SERVO_POS);
-        switch (SELECTED_SERVO) {
-            case 1: s1.setPosition(p); break;
-            case 2: s2.setPosition(p); break;
-            case 3: s3.setPosition(p); break;
-            case 4: s4.setPosition(p); break;
-            case 5: s5.setPosition(p); break;
-            default: setHome(); break;
+    private void applyPickSet(BoxAutoPanels.PickServoSet set) {
+        s1.setPosition(set.s1);
+        s2.setPosition(set.s2);
+        s3.setPosition(set.s3);
+        s4.setPosition(set.s4);
+        s5.setPosition(set.s5);
+    }
+
+    private void applyDropSet(BoxAutoPanels.DropServoSet set) {
+        if (dropReady && drop1 != null) {
+            drop1.setPosition(set.d1);
         }
-    }
-
-    private void applySlot() {
-        switch (SELECTED_SLOT) {
-            case 0:
-                setAll(TL_S1, TL_S2, TL_S3, TL_S4, TL_S5);
-                break;
-            case 1:
-                setAll(TR_S1, TR_S2, TR_S3, TR_S4, TR_S5);
-                break;
-            case 2:
-                setAll(BL_S1, BL_S2, BL_S3, BL_S4, BL_S5);
-                break;
-            case 3:
-                setAll(BR_S1, BR_S2, BR_S3, BR_S4, BR_S5);
-                break;
-            default:
-                setHome();
-                break;
-        }
-    }
-
-    private void setHome() {
-        setAll(S1_HOME, S2_HOME, S3_HOME, S4_HOME, S5_HOME);
-    }
-
-    private void setAll(double p1, double p2, double p3, double p4, double p5) {
-        s1.setPosition(clamp(p1));
-        s2.setPosition(clamp(p2));
-        s3.setPosition(clamp(p3));
-        s4.setPosition(clamp(p4));
-        s5.setPosition(clamp(p5));
-    }
-
-    private double clamp(double v) {
-        if (v < 0.0) return 0.0;
-        if (v > 1.0) return 1.0;
-        return v;
-    }
-
-    private String modeName() {
-        switch (MODE) {
-            case 0: return "0 - Single Servo";
-            case 1: return "1 - Slot 5 Servos";
-            case 2: return "2 - Home";
-            default: return "Unknown";
-        }
-    }
-
-    private String slotName(int slot) {
-        switch (slot) {
-            case 0: return "TOP_LEFT";
-            case 1: return "TOP_RIGHT";
-            case 2: return "BOT_LEFT";
-            case 3: return "BOT_RIGHT";
-            default: return "Unknown";
+        if (pcaReady && pca9685 != null) {
+            pca9685.setServoAngle(BoxAutoPanels.DROP2_PCA_CHANNEL, set.d2 * 180.0);
+            pca9685.setServoAngle(BoxAutoPanels.DROP3_PCA_CHANNEL, set.d3 * 180.0);
         }
     }
 }

@@ -123,6 +123,7 @@ import org.firstinspires.ftc.robotcore.internal.system.ServiceController;
 import org.firstinspires.ftc.robotcore.internal.ui.ThemedActivity;
 import org.firstinspires.ftc.robotcore.internal.ui.UILocation;
 import org.firstinspires.ftc.robotcore.internal.webserver.RobotControllerWebInfo;
+import org.firstinspires.ftc.robotcontroller.standalone.StandaloneAutoStarter;
 import org.firstinspires.ftc.robotserver.internal.programmingmode.ProgrammingModeManager;
 import org.firstinspires.inspection.RcInspectionActivity;
 import org.threeten.bp.YearMonth;
@@ -175,6 +176,7 @@ public class FtcRobotControllerActivity extends Activity
 
   protected FtcEventLoop eventLoop;
   protected Queue<UsbDevice> receivedUsbAttachmentNotifications;
+  protected StandaloneAutoStarter standaloneAutoStarter;
 
   protected WifiMuteStateMachine wifiMuteStateMachine;
   protected MotionDetection motionDetection;
@@ -467,6 +469,7 @@ public class FtcRobotControllerActivity extends Activity
     super.onDestroy();
     RobotLog.vv(TAG, "onDestroy()");
 
+    stopStandaloneAutoStarter();
     shutdownRobot();  // Ensure the robot is put away to bed
     if (callback != null) callback.close();
 
@@ -733,7 +736,12 @@ public class FtcRobotControllerActivity extends Activity
     FtcEventLoopIdle idleLoop = new FtcEventLoopIdle(hardwareFactory, userOpModeRegister, callback, this);
 
     controllerService.setCallback(callback);
-    controllerService.setupRobot(eventLoop, idleLoop, runOnComplete);
+    controllerService.setupRobot(eventLoop, idleLoop, new Runnable() {
+      @Override public void run() {
+        if (runOnComplete != null) runOnComplete.run();
+        startStandaloneAutoStarterIfEnabled();
+      }
+    });
 
     passReceivedUsbAttachmentsToEventLoop();
     AndroidBoard.showErrorIfUnknownControlHub();
@@ -743,6 +751,19 @@ public class FtcRobotControllerActivity extends Activity
 
   protected OpModeRegister createOpModeRegister() {
     return new FtcOpModeRegister();
+  }
+
+  protected void startStandaloneAutoStarterIfEnabled() {
+    stopStandaloneAutoStarter();
+    standaloneAutoStarter = new StandaloneAutoStarter(this);
+    standaloneAutoStarter.start();
+  }
+
+  protected void stopStandaloneAutoStarter() {
+    if (standaloneAutoStarter != null) {
+      standaloneAutoStarter.stop();
+      standaloneAutoStarter = null;
+    }
   }
 
   private void shutdownRobot() {
