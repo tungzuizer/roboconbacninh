@@ -64,31 +64,30 @@ public class BoxAutoPanels {
     public static double START_H_DEG = 0.0;
 
     public static double SHELF1_X     = 0.0;
-    public static double SHELF1_Y     = 0.0;
+    public static double SHELF1_Y     = 20.0;
     public static double SHELF1_H_DEG = 0.0;
 
-    public static double SHELF2_X     = 0.0;
-    public static double SHELF2_Y     = 0.0;
+    public static double SHELF2_X     = 25.5;
+    public static double SHELF2_Y     = 20;
     public static double SHELF2_H_DEG = 0.0;
 
-    public static double SHELF3_X     = 0.0;
-    public static double SHELF3_Y     = 0.0;
+    public static double SHELF3_X     = 51;
+    public static double SHELF3_Y     = 20;
     public static double SHELF3_H_DEG = 0.0;
 
-    public static double DROP1_X     = 0.0;
-    public static double DROP1_Y     = 0.0;
+    public static double DROP1_X     = 7.0;
+    public static double DROP1_Y     = -21.0;
     public static double DROP1_H_DEG = 0.0;
 
-    public static double DROP2_X     = 0.0;
-    public static double DROP2_Y     = 0.0;
+    public static double DROP2_X     = 16.0;
+    public static double DROP2_Y     = -21.0;
     public static double DROP2_H_DEG = 0.0;
 
-    public static double DROP3_X     = 0.0;
-    public static double DROP3_Y     = 0.0;
+    public static double DROP3_X     = 38.0;
+    public static double DROP3_Y     = -21.0;
     public static double DROP3_H_DEG = 0.0;
-
-    public static double DROP4_X     = 0.0;
-    public static double DROP4_Y     = 0.0;
+    public static double DROP4_X     = 48.0;
+    public static double DROP4_Y     = -21.0;
     public static double DROP4_H_DEG = 0.0;
 
     public static double EXTRA_PICK_X     = 0.0;
