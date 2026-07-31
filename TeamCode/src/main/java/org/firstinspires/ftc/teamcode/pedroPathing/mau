@@ -26,7 +26,7 @@ import static com.pedropathing.ivy.commands.Commands.*;
 /**
  * ═══════════════════════════════════════════════════════════════
      *  AUTONOMOUS: 3 Kệ → Quét Limelight → Gắp 4 Hộp/Kệ
- *  Sử dụng Pedro Pathing Ivy Scheduler
+ *  Sử dụng Pedro Pathing Ivy https://github.com/tungzuizer/roboconbacninh.git
  * ═══════════════════════════════════════════════════════════════
  */
 @Autonomous(name = "3 Shelves Auto - Ivy", group = "Examples")
