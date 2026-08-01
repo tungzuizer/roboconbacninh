@@ -287,25 +287,61 @@ public class BoxAutoPanels {
         return new PickServoSet(S1_HOME, S2_HOME, S3_HOME, S4_HOME, S5_HOME);
     }
 
+    // ── Step 1: pickReady — S4 xoay ra trước (GRAB), S5 swing sang cột ──
+    public static PickServoSet pickReady(int col, int row) {
+        double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
+        return new PickServoSet(S1_HOME, S2_HOME, S3_OPEN, S4_GRAB, s5);
+    }
     public static PickServoSet pickReady(int slot) {
-        // Backwards compatibility for compiled references
-        return pickHome();
+        return pickReady(1, 1);
     }
 
+    // ── Step 2+3: pickDown — S1 hạ xuống hàng, S2 vươn ra ──
+    public static PickServoSet pickDown(int col, int row) {
+        double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
+        double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
+        return new PickServoSet(s1, S2_EXTEND, S3_OPEN, S4_GRAB, s5);
+    }
     public static PickServoSet pickDown(int slot) {
-        return pickHome();
+        return pickDown(1, 1);
     }
 
+    // ── Step 4: pickGrab — S3 kẹp chặt box ──
+    public static PickServoSet pickGrab(int col, int row) {
+        double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
+        double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
+        return new PickServoSet(s1, S2_EXTEND, S3_CLOSED, S4_GRAB, s5);
+    }
     public static PickServoSet pickGrab(int slot) {
-        return pickHome();
+        return pickGrab(1, 1);
     }
 
+    // ── Step 5+6: pickRetract — Nhích S1 lên, rút S2 về ──
+    public static PickServoSet pickRetract(int col, int row) {
+        double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
+        double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
+        return new PickServoSet(s1 - S1_LIFT_UP_OFFSET, S2_HOME, S3_CLOSED, S4_GRAB, s5);
+    }
     public static PickServoSet pickRetract(int slot) {
-        return pickHome();
+        return pickRetract(1, 1);
     }
 
+    // ── Step 7: pickHighStore — Nâng cao + xoay cổ tay ra sau ──
+    public static PickServoSet pickHighStore() {
+        return new PickServoSet(S1_HIGH_STORE, S2_HOME, S3_CLOSED, S4_STORE, S5_HOME);
+    }
+
+    // ── Step 8: storeCompartment — Swing tới ngăn, hạ xuống, thả box ──
     public static PickServoSet storeCompartment(int compartment) {
-        return pickHome();
+        double s5;
+        switch (compartment) {
+            case 1:  s5 = S5_STORE1; break;
+            case 2:  s5 = S5_STORE2; break;
+            case 3:  s5 = S5_STORE3; break;
+            case 4:  s5 = S5_STORE4; break;
+            default: s5 = S5_STORE1; break;
+        }
+        return new PickServoSet(S1_STORE, S2_STORE, S3_OPEN, S4_STORE, s5);
     }
 
     public static PickServoSet pickExtra() {
