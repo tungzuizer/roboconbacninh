@@ -114,18 +114,18 @@ public class BoxAutoPanels {
     public static double S4_STORE = 0.75; // Quay ra sau để cất khay thả
 
     // --- SERVO 5: COLUMN SELECTION (Quay sang kệ trái / kệ phải) ---
-    public static double S5_LEFT  = 0.3; // Xoay quẹo sang khay gắp Trái
-    public static double S5_RIGHT = 0.65; // Xoay quẹo sang khay gắp Phải
+    public static double S5_LEFT  = 0.12; // Xoay quẹo sang khay gắp Trái
+    public static double S5_RIGHT = 0.63; // Xoay quẹo sang khay gắp Phải
 
     // --- SERVO 1: ELEVATOR LIFT (Cao độ nâng hạ tầng 1 & tầng 2) ---
-    public static double S1_ROW1           = 0.9; // Tầng 1 (Bottom)
-    public static double S1_ROW2           = 0.35; // Tầng 2 (Top)
+    public static double S1_ROW1           = 0.8; // Tầng 1 (Bottom)
+    public static double S1_ROW2           = 0.25; // Tầng 2 (Top)
     public static double S1_LIFT_UP_OFFSET = 0.1; // Khoảng nhích nâng lên thêm sau gắp (ví dụ: 0.05)
     public static double S1_HIGH_STORE     = 0.2; // Cao độ thật cao để ko vướng khi xoay S4 ra sau
     public static double S1_STORE          = 0.0; // Cao độ xả hộp trùng vị trí cất khay robot
 
     // --- SERVO 2: TELESCOPIC EXTENSION (Khoảng vươn tay gắp) ---
-    public static double S2_EXTEND       = 0.75;  // Độ vươn khi gắp (chung cả 2 tầng, mặc định vươn hẳn ra 1.0)
+    public static double S2_EXTEND       = 1;  // Độ vươn khi gắp (chung cả 2 tầng, mặc định vươn hẳn ra 1.0)
     public static double S2_STORE       = 0.75; // Độ vươn khi thả vào khay robot
 
     // --- SERVO 3: GRIPPER CLAMP (Chỉ hoạt động 0.0 và 0.1) ---
@@ -269,7 +269,7 @@ public class BoxAutoPanels {
     // ═══════════════════════════════════════════════════════════
 
     public static double clampS2(double v) {
-        if (v < 0.75) return 0.75;
+        if (v < 0.0) return 0.0;
         if (v > 1.0)  return 1.0;
         return v;
     }
@@ -287,16 +287,17 @@ public class BoxAutoPanels {
         return new PickServoSet(S1_HOME, S2_HOME, S3_HOME, S4_HOME, S5_HOME);
     }
 
-    // ── Step 1: pickReady — S4 xoay ra trước (GRAB), S5 swing sang cột ──
+    // ── Step 1: pickReady — S1 hạ xuống kệ, S4 xoay ra trước, S5 swing sang cột (S2 vẫn ở HOME) ──
     public static PickServoSet pickReady(int col, int row) {
+        double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
         double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
-        return new PickServoSet(S1_HOME, S2_HOME, S3_OPEN, S4_GRAB, s5);
+        return new PickServoSet(s1, S2_HOME, S3_OPEN, S4_GRAB, s5);
     }
     public static PickServoSet pickReady(int slot) {
         return pickReady(1, 1);
     }
 
-    // ── Step 2+3: pickDown — S1 hạ xuống hàng, S2 vươn ra ──
+    // ── Step 2: pickDown — GIỮ NGUYÊN trục khác, CHỈ CÓ S2 vươn ra (EXTEND) ──
     public static PickServoSet pickDown(int col, int row) {
         double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
         double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
@@ -306,7 +307,7 @@ public class BoxAutoPanels {
         return pickDown(1, 1);
     }
 
-    // ── Step 4: pickGrab — S3 kẹp chặt box ──
+    // ── Step 3: pickGrab — S3 kẹp chặt box ──
     public static PickServoSet pickGrab(int col, int row) {
         double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
         double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
@@ -316,22 +317,37 @@ public class BoxAutoPanels {
         return pickGrab(1, 1);
     }
 
-    // ── Step 5+6: pickRetract — Nhích S1 lên, rút S2 về ──
+    // ── Step 4: pickRetract — Nhích S1 lên một khoảng offset (S2 vẫn giữ EXTEND) ──
     public static PickServoSet pickRetract(int col, int row) {
         double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
         double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
-        return new PickServoSet(s1 - S1_LIFT_UP_OFFSET, S2_HOME, S3_CLOSED, S4_GRAB, s5);
+        return new PickServoSet(s1 - S1_LIFT_UP_OFFSET, S2_EXTEND, S3_CLOSED, S4_GRAB, s5);
     }
     public static PickServoSet pickRetract(int slot) {
         return pickRetract(1, 1);
     }
 
-    // ── Step 7: pickHighStore — Nâng cao + xoay cổ tay ra sau ──
-    public static PickServoSet pickHighStore() {
-        return new PickServoSet(S1_HIGH_STORE, S2_HOME, S3_CLOSED, S4_STORE, S5_HOME);
+    // ── Step 5: pickRetractArm — Co S2 về HOME (S1 vẫn giữ ở khoảng offset) ──
+    public static PickServoSet pickRetractArm(int col, int row) {
+        double s1 = (row == 1) ? S1_ROW1 : S1_ROW2;
+        double s5 = (col == 1) ? S5_LEFT : S5_RIGHT;
+        return new PickServoSet(s1 - S1_LIFT_UP_OFFSET, S2_HOME, S3_CLOSED, S4_GRAB, s5);
     }
 
-    // ── Step 8: storeCompartment — Swing tới ngăn, hạ xuống, thả box ──
+    // ── Step 6: pickReadyStore — Nâng cao S1 và xoay S4 ngửa ra sau, S5 swing đến khay 1..4 ──
+    public static PickServoSet pickReadyStore(int compartment) {
+        double s5;
+        switch (compartment) {
+            case 1:  s5 = S5_STORE1; break;
+            case 2:  s5 = S5_STORE2; break;
+            case 3:  s5 = S5_STORE3; break;
+            case 4:  s5 = S5_STORE4; break;
+            default: s5 = S5_STORE1; break;
+        }
+        return new PickServoSet(S1_HIGH_STORE, S2_HOME, S3_CLOSED, S4_STORE, s5);
+    }
+
+    // ── Step 7: storeCompartment — Hạ S1 xuống ngăn cất, S2 vươn nhẹ, S3 mở nhả hộp vào robot ──
     public static PickServoSet storeCompartment(int compartment) {
         double s5;
         switch (compartment) {
