@@ -21,25 +21,33 @@ import java.util.Locale;
  *   - Nút [B]         : Dừng khẩn cấp chạy tự động, quay về lái tay.
  *   - Nút [Y]         : Ghi đè tọa độ thực tế của robot hiện tại vào điểm P(index).
  *
- * 🦾 GAMEPAD 2: CĂN CHỈNH BẰNG TAY & CHU TRÌNH
+ * 🦾 GAMEPAD 2: CĂN CHỈNH BẰNG TAY & CHU TRÌNH (TỐC ĐỘ SERVO GIẢM 50%)
  *   - Nút [LB] / [RB] : Giảm / Tăng chế độ TUNER_MODE trực tiếp (0 đến 11).
  *   - Trục Left Stick Y: Đẩy lên / kéo xuống để JOG tăng giảm góc servo mịn (0.005).
  *   - Nút [Y]         : LƯU góc đang căn chỉnh trực tiếp vào file cấu hình BoxAutoPanels.
  *   - Nút [X]         : KHẨN CẤP đưa toàn bộ cơ cấu gắp về HOME và Mode 0.
  *
- * 📝 CÁC CHẾ ĐỘ TUNER_MODE (0 - 11):
- *   - MODE 0: TUNE LẺ CÁNH TAY (S1-S5). Dpad U/D chọn servo, Stick Y chỉnh góc. A/B kẹp/mở S3.
- *   - MODE 1: STEP 1 - READY. Chỉnh S5 Swing sang cột (cột 1/2 chọn bằng Dpad L/R).
- *   - MODE 2: STEP 2 - DOWN. Chỉnh S1 Lift hạ gắp (hàng 1/2 chọn bằng Dpad U/D).
- *   - MODE 3: STEP 3 - EXTEND. Chỉnh S2 Telescope vươn ra gắp.
- *   - MODE 4: STEP 4 - GRAB. Chỉnh S3 Gripper kẹp khít hộp.
- *   - MODE 5: STEP 5 - LIFT UP. Chỉnh khoảng nhích lift S1 tránh vướng kệ.
- *   - MODE 6: STEP 6 - RETRACT. Chỉnh S2 co tay gắp về.
- *   - MODE 7: STEP 7 - HIGH STORE. Chỉnh S1 nâng cực cao, S4 ngửa ra sau (lộn cánh tay).
- *   - MODE 8: STEP 8 - DROP STORE. Chỉnh S5 swing ngăn robot (Ngăn 1-4 chọn bằng Dpad L/R), nhả S3.
- *   - MODE 9: TUNE LẺ DROP SERVO CỬA XẢ (D1-D3). Dpad U/D chọn, Stick Y chỉnh góc.
+ * 📝 CÁC CHẾ ĐỘ TUNER_MODE (0 - 11) - CHU TRÌNH 8 BƯỚC THỰC TẾ:
+ *   - MODE 0: TUNE LẺ CÁNH TAY BẰNG TAY (S1-S5). Dpad U/D chọn, Stick Y chỉnh. A/B kẹp/mở S3.
+ *   - MODE 1: STEP 1 - READY. S1 hạ hàng gắp, S4 xoay trước, S5 quay sang cột. (Cột: Dpad L/R | Hàng: Dpad U/D)
+ *             * Left Stick Y: Jog S5 Swing  |  Giữ LT + Left Stick Y: Jog S1 Lift gắp.
+ *   - MODE 2: STEP 2 - EXTEND (S2 vươn). Chỉ có S2 vươn ra gắp hộp, các trục khác giữ nguyên Step 1.
+ *             * Left Stick Y: Jog S2 Telescope vươn ra gắp.
+ *   - MODE 3: STEP 3 - GRAB (Gripper S3 kẹp). S3 kẹp chặt.
+ *             * Left Stick Y: Jog S3 Gripper kẹp hộp.
+ *   - MODE 4: STEP 4 - LIFT UP. S1 nhấc nhẹ lên để tránh cọ sát với kệ.
+ *             * Left Stick Y: Jog S1 Lift nâng lên nhích (S1_LIFT_UP_OFFSET).
+ *   - MODE 5: STEP 5 - RETRACT. S2 co tay gắp về HOME.
+ *             * Left Stick Y: Jog S2 Telescope co về (S2_HOME).
+ *   - MODE 6: STEP 6 - READY STORE/LẬT SAU. S1 cực cao, S4 ngửa ra sau, S5 swing đến ngăn. (Khay cất 1-4: Dpad L/R)
+ *             * Left Stick Y: Jog S5 Store | Giữ LT + LS Y: Jog S1 Lift cao | Giữ RT + LS Y: Jog S4 ngửa sau.
+ *   - MODE 7: STEP 7 - STORE/THẢ. S1 hạ khay robot, S2 vươn nhẹ, S3 mở nhả hộp.
+ *             * Left Stick Y: Jog S1 Lift xả thả robot | Giữ LT + LS Y: Jog S2 Telescope vươn cất.
+ *   - MODE 8: STEP 8 - RESET HOME. Cất tay gắp an toàn, S1/S2/S4/S5 về HOME.
+ *             * Bấm [Y] lưu các góc hiện tại làm góc HOME mặc định.
+ *   - MODE 9: TUNE LẺ DROP SERVO CỬA XẢ DƯỚI GẦM (D1-D3). Dpad U/D chọn, Stick Y chỉnh góc.
  *   - MODE 10: ĐÓNG NẮP GẦM (Tất cả drop đóng).
- *   - MODE 11: MỞ NẮP GẦM. Mở nắp tương ứng khay chọn. Stick Y chỉnh góc mở nắp xả.
+ *   - MODE 11: MỞ NẮP GẦM. Mở nắp khay chọn (Khay xả 1-4: Dpad L/R). Stick Y chỉnh góc mở nắp xả.
  * =========================================================================
  */
 @TeleOp(name = "Pedro Manual & Cycle Tuner", group = "Pedro Pathing")
@@ -48,17 +56,27 @@ public class ManualTuner extends LinearOpMode {
     private Follower follower;
     private Servo s1, s2, s3, s4, s5;
     private Servo drop1;
-    private com.qualcomm.robotcore.hardware.HardwareDevice pcaRaw; // PCA9685 driver class if loaded
+    private com.qualcomm.robotcore.hardware.HardwareDevice pcaRaw;
 
     // State Variables for Auto Drive
     private boolean autoDriving = false;
     private int lastTargetIndex = -1;
     private Pose lastTargetPose = new Pose(0, 0, 0);
 
-    // Jogging variables
+    // Jogging and Target variables
     private int selectedServoIndex = 0; // 0=S1, 1=S2, 2=S3, 3=S4, 4=S5 for pick, or 0=D1, 1=D2, 2=D3 for drop
     
-    // Cache angles to avoid I2C / servo bottlenecking
+    // Target angles (Góc mong muốn)
+    private double targetS1 = 0.5;
+    private double targetS2 = 0.75;
+    private double targetS3 = 0.0;
+    private double targetS4 = 0.375;
+    private double targetS5 = 0.0;
+    private double targetD1 = 0.0;
+    private double targetD2 = 0.0;
+    private double targetD3 = 0.0;
+
+    // Current interpolation angles (Góc hiện tại đang chạy từ từ)
     private double currentS1 = 0.5;
     private double currentS2 = 0.75;
     private double currentS3 = 0.0;
@@ -68,6 +86,7 @@ public class ManualTuner extends LinearOpMode {
     private double currentD2 = 0.0;
     private double currentD3 = 0.0;
 
+    // Cache angles to avoid redundant writing and I2C dropouts
     private double lastWrittenS1 = -1;
     private double lastWrittenS2 = -1;
     private double lastWrittenS3 = -1;
@@ -76,6 +95,10 @@ public class ManualTuner extends LinearOpMode {
     private double lastWrittenD1 = -1;
     private double lastWrittenD2 = -1;
     private double lastWrittenD3 = -1;
+
+    // Rate Limiting Constants for 50% Speed (Đơn vị vị trí / giây, 0.45 tức xoay hành trình 0-1 mất khoảng 2.2 giây)
+    private static final double SERVO_POS_PER_SEC = 0.45;
+    private static final double GRIPPER_POS_PER_SEC = 3.0; // Gripper kẹp giữ tốc độ nhanh nhạy
 
     private static final double JOG_STEP = 0.005; // Bước dịch servo mịn
     private static final double DEADZONE = 0.05;
@@ -100,38 +123,40 @@ public class ManualTuner extends LinearOpMode {
 
     private String savedPoseStr = "(chưa lưu)";
     private String lastActionFeedback = "Sẵn sàng!";
+    private long lastLoopTime = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        // --- Khởi tạo Follower và Cơ cấu gắp ---
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(BoxAutoPanels.poseStart());
 
         try {
             s1 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S1);
+        } catch (Exception e) {}
+        try {
             s2 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S2);
+        } catch (Exception e) {}
+        try {
             s3 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S3);
+        } catch (Exception e) {}
+        try {
             s4 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S4);
+        } catch (Exception e) {}
+        try {
             s5 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_S5);
-        } catch (Exception e) {
-            telemetry.addData("WARNING", "Không tìm thấy đủ Servo cánh tay (s1-s5)");
-        }
+        } catch (Exception e) {}
 
         try {
             drop1 = hardwareMap.get(Servo.class, BoxAutoPanels.NAME_DROP1);
-        } catch (Exception e) {
-            telemetry.addData("WARNING", "Không tìm thấy drop1");
-        }
+        } catch (Exception e) {}
 
         try {
-            // Thử khởi tạo PCA9685 nếu có trong hardwareMap
             pcaRaw = hardwareMap.get(com.qualcomm.robotcore.hardware.HardwareDevice.class, BoxAutoPanels.NAME_PCA9685);
-        } catch (Exception e) {
-            telemetry.addData("WARNING", "Không tìm thấy PCA9685");
-        }
+        } catch (Exception e) {}
 
         // Lấy góc hiện tại từ hardware
         readCurrentAnglesFromHardware();
+        syncTargetWithCurrent();
 
         telemetry.addData("Trạng thái", "Đã khởi tạo. Sẵn sàng!");
         telemetry.update();
@@ -139,22 +164,28 @@ public class ManualTuner extends LinearOpMode {
         waitForStart();
         follower.startTeleopDrive();
 
-        // Gửi trạng thái ban đầu của servo xuống phần cứng
-        writeAnglesToHardware(true);
+        lastLoopTime = System.currentTimeMillis();
 
         while (opModeIsActive()) {
-            // Refresh các giá trị cấu hình trực tiếp từ Panels
             BoxAutoPanels.refresh();
-
             follower.update();
+
+            // Tính Delta Time
+            long currentLoopTime = System.currentTimeMillis();
+            double deltaTimeSec = (currentLoopTime - lastLoopTime) / 1000.0;
+            if (deltaTimeSec > 0.2) deltaTimeSec = 0.05; 
+            lastLoopTime = currentLoopTime;
 
             // --- GAMEPAD 1: DI CHUYỂN & CHỌN VỊ TRÍ SÂN ---
             handleDriving();
 
-            // --- GAMEPAD 2: CONFIG / MỌI TÍNH NĂNG TUNE ---
+            // --- GAMEPAD 2: CONFIG / TUNE ---
             handleMechanismTuning();
 
-            // --- ĐỒNG BỘ GÓC SERVO RA PHẦN CỨNG (TRÁNH LẶP GHI I2C) ---
+            // --- NỘI SUY MỊN TỪ GÓC HIỆN TẠI ĐẾN GÓC TARGET (CHẬM 50%) ---
+            interpolateServos(deltaTimeSec);
+
+            // --- ĐỒNG BỘ GÓC SERVO RA PHẦN CỨNG ---
             writeAnglesToHardware(false);
 
             // --- Telemetry ---
@@ -171,8 +202,41 @@ public class ManualTuner extends LinearOpMode {
         if (drop1 != null) currentD1 = drop1.getPosition();
     }
 
+    private void syncTargetWithCurrent() {
+        targetS1 = currentS1;
+        targetS2 = currentS2;
+        targetS3 = currentS3;
+        targetS4 = currentS4;
+        targetS5 = currentS5;
+        targetD1 = currentD1;
+        targetD2 = currentD2;
+        targetD3 = currentD3;
+    }
+
+    private void interpolateServos(double dt) {
+        double pickChangeLimit = SERVO_POS_PER_SEC * dt;
+        double gridChangeLimit = GRIPPER_POS_PER_SEC * dt;
+
+        currentS1 = moveToward(currentS1, targetS1, pickChangeLimit);
+        currentS2 = moveToward(currentS2, targetS2, pickChangeLimit);
+        currentS3 = moveToward(currentS3, targetS3, gridChangeLimit);
+        currentS4 = moveToward(currentS4, targetS4, pickChangeLimit);
+        currentS5 = moveToward(currentS5, targetS5, pickChangeLimit);
+
+        currentD1 = moveToward(currentD1, targetD1, pickChangeLimit);
+        currentD2 = moveToward(currentD2, targetD2, pickChangeLimit);
+        currentD3 = moveToward(currentD3, targetD3, pickChangeLimit);
+    }
+
+    private double moveToward(double current, double target, double maxStep) {
+        double diff = target - current;
+        if (Math.abs(diff) <= maxStep) {
+            return target;
+        }
+        return current + Math.signum(diff) * maxStep;
+    }
+
     private void writeAnglesToHardware(boolean force) {
-        // Chỉ setPosition khi góc thực sự thay đổi > 0.0005 hoặc force
         if (force || Math.abs(currentS1 - lastWrittenS1) > 0.0005) {
             if (s1 != null) s1.setPosition(currentS1);
             lastWrittenS1 = currentS1;
@@ -315,7 +379,6 @@ public class ManualTuner extends LinearOpMode {
     //  LOGIC GAMEPAD 2: CƠ CẤU & TUNING ĐỒNG BỘ THEO TUNER_MODE
     // ═══════════════════════════════════════════════════════════
     private void handleMechanismTuning() {
-        // --- LB/RB: CHUYỂN ĐỔI TUNER_MODE TRỰC TIẾP TRÊN GAMEPAD ---
         boolean gp2LB = gamepad2.left_bumper;
         boolean gp2RB = gamepad2.right_bumper;
         
@@ -336,17 +399,15 @@ public class ManualTuner extends LinearOpMode {
         prevGp2LB = gp2LB;
         prevGp2RB = gp2RB;
 
-        // --- Nút X: HOME khẩn cấp đưa về Mode 0 + Home servo ---
         boolean gp2X = gamepad2.x;
         if (gp2X && !prevGp2X) {
             BoxAutoPanels.TUNER_MODE = 0;
             applyPickSetVariables(BoxAutoPanels.pickHome());
             applyDropSetVariables(BoxAutoPanels.dropClosed());
-            lastActionFeedback = "KHẨN CẤP: Đưa cơ cấu về HOME và Mode 0!";
+            lastActionFeedback = "KHẨN CẤP: Đưa target về HOME và Mode 0!";
         }
         prevGp2X = gp2X;
 
-        // --- Nút Y: Ghi nhớ / Lưu vị trí đang tune vào Panels class hằng số ---
         boolean gp2Y = gamepad2.y;
         if (gp2Y && !prevGp2Y) {
             saveTuningValuesToConstants();
@@ -354,16 +415,13 @@ public class ManualTuner extends LinearOpMode {
         }
         prevGp2Y = gp2Y;
 
-        // --- Dpad Left/Right và Up/Down để đổi tham số/lọc tùy theo Mode ---
         handleDpadNavigation();
 
-        // --- DI CHUYỂN JOG BẰNG LEFT STICK Y ---
         double jogVal = -gamepad2.left_stick_y;
         if (Math.abs(jogVal) > 0.05) {
             executeJogging(jogVal * JOG_STEP);
         }
 
-        // --- QUY ĐỊNH HÀNH VI ĐẶC BIỆT CỦA CÁC NÚT KHÁC THEO MODE ---
         handleSpecialButtons();
     }
 
@@ -375,7 +433,6 @@ public class ManualTuner extends LinearOpMode {
 
         int mode = BoxAutoPanels.TUNER_MODE;
 
-        // Mode 0 (Tune lẻ Pick) & Mode 9 (Tune lẻ Drop): Chọn servo cần tune
         if (mode == 0) {
             if (gp2DU && !prevGp2DpadUp) selectedServoIndex = (selectedServoIndex - 1 + 5) % 5;
             if (gp2DD && !prevGp2DpadDown) selectedServoIndex = (selectedServoIndex + 1) % 5;
@@ -384,20 +441,18 @@ public class ManualTuner extends LinearOpMode {
             if (gp2DD && !prevGp2DpadDown) selectedServoIndex = (selectedServoIndex + 1) % 3;
         }
 
-        // Mode 1-8 (các bước chu trình):
-        // Dpad Left/Right: Đổi cột (col: 1=Left, 2=Right)
+        // Với 8 bước chu trình gắp: chọn Cột (col L/R) và Hàng (row U/D)
         if (mode >= 1 && mode <= 8) {
             if (gp2DL && !prevGp2DpadLeft) {
                 BoxAutoPanels.TUNER_SELECTED_COLUMN = 1;
-                applyModeBehavior(mode); // Cập nhật lại góc ngay lập tức
-                lastActionFeedback = "Chọn CỘT TRÁI";
+                applyModeBehavior(mode);
+                lastActionFeedback = "Chọn CỘT TRÁI (Col 1)";
             }
             if (gp2DR && !prevGp2DpadRight) {
                 BoxAutoPanels.TUNER_SELECTED_COLUMN = 2;
                 applyModeBehavior(mode);
-                lastActionFeedback = "Chọn CỘT PHẢI";
+                lastActionFeedback = "Chọn CỘT PHẢI (Col 2)";
             }
-            // Dpad Up/Down: Đổi hàng (row: 1=ROW1, 2=ROW2)
             if (gp2DU && !prevGp2DpadUp) {
                 BoxAutoPanels.TUNER_SELECTED_ROW = 2;
                 applyModeBehavior(mode);
@@ -410,8 +465,8 @@ public class ManualTuner extends LinearOpMode {
             }
         }
 
-        // Đổi Compartment (1-4) bằng Dpad Left/Right ở các Mode liên quan (Mode 8 & 11)
-        if (mode == 8 || mode == 11) {
+        // Với bước cất ngăn (Step 6-7) và mở xả (Mode 11): Dpad L/R đổi ngăn robot (compartment 1-4)
+        if (mode == 6 || mode == 7 || mode == 11) {
             if (gp2DL && !prevGp2DpadLeft) {
                 BoxAutoPanels.TUNER_SELECTED_COMPARTMENT = Math.max(BoxAutoPanels.TUNER_SELECTED_COMPARTMENT - 1, 1);
                 applyModeBehavior(mode);
@@ -435,13 +490,12 @@ public class ManualTuner extends LinearOpMode {
         boolean gp2B = gamepad2.b;
         int mode = BoxAutoPanels.TUNER_MODE;
 
-        // Mode 0: A/B kẹp mở nhanh gripper
         if (mode == 0) {
-            if (gp2A && !prevGp2A) currentS3 = BoxAutoPanels.S3_CLOSED;
-            if (gp2B && !prevGp2B) currentS3 = BoxAutoPanels.S3_OPEN;
+            if (gp2A && !prevGp2A) targetS3 = BoxAutoPanels.S3_CLOSED;
+            if (gp2B && !prevGp2B) targetS3 = BoxAutoPanels.S3_OPEN;
         }
 
-        // Mode 1-8 hoặc Mode 11: A để kích hoạt xả thử khay được chọn
+        // Bấm giữ [A] để mở thử nắp cửa xả ở các mode chu trình gắp thả
         if (mode >= 1 && mode <= 8 || mode == 11) {
             int comp = BoxAutoPanels.TUNER_SELECTED_COMPARTMENT;
             if (gp2A) {
@@ -460,48 +514,39 @@ public class ManualTuner extends LinearOpMode {
         int row = BoxAutoPanels.TUNER_SELECTED_ROW;
         int comp = BoxAutoPanels.TUNER_SELECTED_COMPARTMENT;
 
-        if (mode == 0) {
-            // Giữ nguyên góc hiện tại để căn chỉnh lẻ
-            return;
-        }
-        if (mode >= 1 && mode <= 8) {
-            // Áp dụng góc thiết lập của step
-            switch (mode) {
-                case 1: applyPickSetVariables(BoxAutoPanels.pickReady(col, row)); break;
-                case 2: applyPickSetVariables(BoxAutoPanels.pickDown(col, row)); break;
-                case 3: // Step 3: Extend S2
-                    applyPickSetVariables(new BoxAutoPanels.PickServoSet(
-                        (row == 1) ? BoxAutoPanels.S1_ROW1 : BoxAutoPanels.S1_ROW2,
-                        BoxAutoPanels.S2_EXTEND,
-                        BoxAutoPanels.S3_OPEN,
-                        BoxAutoPanels.S4_GRAB,
-                        (col == 1) ? BoxAutoPanels.S5_LEFT : BoxAutoPanels.S5_RIGHT
-                    ));
-                    break;
-                case 4: applyPickSetVariables(BoxAutoPanels.pickGrab(col, row)); break;
-                case 5: applyPickSetVariables(BoxAutoPanels.pickRetract(col, row)); break;
-                case 6: // Step 6: Retract S2
-                    applyPickSetVariables(new BoxAutoPanels.PickServoSet(
-                        ((row == 1) ? BoxAutoPanels.S1_ROW1 : BoxAutoPanels.S1_ROW2) - BoxAutoPanels.S1_LIFT_UP_OFFSET,
-                        BoxAutoPanels.S2_HOME,
-                        BoxAutoPanels.S3_CLOSED,
-                        BoxAutoPanels.S4_GRAB,
-                        (col == 1) ? BoxAutoPanels.S5_LEFT : BoxAutoPanels.S5_RIGHT
-                    ));
-                    break;
-                case 7: applyPickSetVariables(BoxAutoPanels.pickHighStore()); break;
-                case 8: applyPickSetVariables(BoxAutoPanels.storeCompartment(comp)); break;
-            }
-        }
-        if (mode == 9) {
-            // Giữ góc drop lẻ để căn chỉnh
-            return;
-        }
-        if (mode == 10) {
-            applyDropSetVariables(BoxAutoPanels.dropClosed());
-        }
-        if (mode == 11) {
-            applyDropSetVariables(BoxAutoPanels.dropOpen(comp));
+        if (mode == 0) return;
+        
+        switch (mode) {
+            case 1: // Step 1: Ready (S4 grab, s5 swing L/R, S1 hạ hàng gắp, s2 co)
+                applyPickSetVariables(BoxAutoPanels.pickReady(col, row));
+                break;
+            case 2: // Step 2: Extend (CHỈ S2 vươn)
+                applyPickSetVariables(BoxAutoPanels.pickDown(col, row));
+                break;
+            case 3: // Step 3: Grab (kẹp s3)
+                applyPickSetVariables(BoxAutoPanels.pickGrab(col, row));
+                break;
+            case 4: // Step 4: Lift Up (nhấc s1 lên offset)
+                applyPickSetVariables(BoxAutoPanels.pickRetract(col, row));
+                break;
+            case 5: // Step 5: Retract telescop S2 co về
+                applyPickSetVariables(BoxAutoPanels.pickRetractArm(col, row));
+                break;
+            case 6: // Step 6: Ready Store (Lật sau, S1 cao, s5 sang ngăn)
+                applyPickSetVariables(BoxAutoPanels.pickReadyStore(comp));
+                break;
+            case 7: // Step 7: Store (S1 hạ thả khay robot, s2 vươn nhẹ, s3 mở)
+                applyPickSetVariables(BoxAutoPanels.storeCompartment(comp));
+                break;
+            case 8: // Step 8: Reset Home an toàn
+                applyPickSetVariables(BoxAutoPanels.pickHome());
+                break;
+            case 10:
+                applyDropSetVariables(BoxAutoPanels.dropClosed());
+                break;
+            case 11:
+                applyDropSetVariables(BoxAutoPanels.dropOpen(comp));
+                break;
         }
     }
 
@@ -509,51 +554,64 @@ public class ManualTuner extends LinearOpMode {
         int mode = BoxAutoPanels.TUNER_MODE;
 
         if (mode == 0) {
-            // Tune lẻ pick
             switch (selectedServoIndex) {
-                case 0: currentS1 = clamp(currentS1 + amount); break;
-                case 1: currentS2 = BoxAutoPanels.clampS2(currentS2 + amount); break;
-                case 2: currentS3 = BoxAutoPanels.clampS3(currentS3 + amount); break;
-                case 3: currentS4 = clamp(currentS4 + amount); break;
-                case 4: currentS5 = clamp(currentS5 + amount); break;
+                case 0: targetS1 = clamp(targetS1 + amount); break;
+                case 1: targetS2 = BoxAutoPanels.clampS2(targetS2 + amount); break;
+                case 2: targetS3 = BoxAutoPanels.clampS3(targetS3 + amount); break;
+                case 3: targetS4 = clamp(targetS4 + amount); break;
+                case 4: targetS5 = clamp(targetS5 + amount); break;
             }
         } else if (mode == 9) {
-            // Tune lẻ drop
             switch (selectedServoIndex) {
-                case 0: currentD1 = clamp(currentD1 + amount); break;
-                case 1: currentD2 = clamp(currentD2 + amount); break;
-                case 2: currentD3 = clamp(currentD3 + amount); break;
+                case 0: targetD1 = clamp(targetD1 + amount); break;
+                case 1: targetD2 = clamp(targetD2 + amount); break;
+                case 2: targetD3 = clamp(targetD3 + amount); break;
             }
         } else if (mode >= 1 && mode <= 8) {
-            // Jog gán trực tiếp vào các biến góc đang hoạt động trong step để thử nghiệm trực tiếp
             switch (mode) {
-                case 1: // Step 1: Ready - Jog S5 (Swing)
-                    currentS5 = clamp(currentS5 + amount);
-                    break;
-                case 2: // Step 2: Down - Jog S1 (Lift)
-                    currentS1 = clamp(currentS1 + amount);
-                    break;
-                case 3: // Step 3: Extend - Jog S2 (Teles)
-                    currentS2 = BoxAutoPanels.clampS2(currentS2 + amount);
-                    break;
-                case 4: // Step 4: Grab - Jog S3 (Gripper kẹp)
-                    currentS3 = BoxAutoPanels.clampS3(currentS3 + amount);
-                    break;
-                case 5: // Step 5: S1 nhấc lên nhích nâng
-                    currentS1 = clamp(currentS1 + amount);
-                    break;
-                case 6: // Step 6: Retract - Jog S2 co
-                    currentS2 = BoxAutoPanels.clampS2(currentS2 + amount);
-                    break;
-                case 7: // Step 7: Ready lộn - Jog S4 (Wrist) hoặc S1 (Lift)
+                case 1: // Step 1: Ready - LS Y: Jog S5 Swing  |  Giữ LT jog S1 Lift gắp
                     if (gamepad2.left_trigger > 0.5) {
-                        currentS1 = clamp(currentS1 + amount);
+                        targetS1 = clamp(targetS1 + amount);
                     } else {
-                        currentS4 = clamp(currentS4 + amount);
+                        targetS5 = clamp(targetS5 + amount);
                     }
                     break;
-                case 8: // Step 8: Store - Jog S5 angle để căn ngăn chứa
-                    currentS5 = clamp(currentS5 + amount);
+                case 2: // Step 2: Extend - CHỈ jog S2 vươn
+                    targetS2 = BoxAutoPanels.clampS2(targetS2 + amount);
+                    break;
+                case 3: // Step 3: Grab - Jog S3 gripper kẹp
+                    targetS3 = BoxAutoPanels.clampS3(targetS3 + amount);
+                    break;
+                case 4: // Step 4: Lift Up - Jog S1 (nhấc offset)
+                    targetS1 = clamp(targetS1 + amount);
+                    break;
+                case 5: // Step 5: Retract telescop co về - Jog S2
+                    targetS2 = BoxAutoPanels.clampS2(targetS2 + amount);
+                    break;
+                case 6: // Step 6: Ready Store (LT jog S1, RT jog S4, không giữ jog S5 swing ngăn)
+                    if (gamepad2.left_trigger > 0.5) {
+                        targetS1 = clamp(targetS1 + amount);
+                    } else if (gamepad2.right_trigger > 0.5) {
+                        targetS4 = clamp(targetS4 + amount);
+                    } else {
+                        targetS5 = clamp(targetS5 + amount);
+                    }
+                    break;
+                case 7: // Step 7: Store thả khay - LS Y jog S1  |  Giữ LT jog S2 vươn xả
+                    if (gamepad2.left_trigger > 0.5) {
+                        targetS2 = BoxAutoPanels.clampS2(targetS2 + amount);
+                    } else {
+                        targetS1 = clamp(targetS1 + amount);
+                    }
+                    break;
+                case 8: // Step 8: Reset Home - LS Y jog các góc HOME
+                    switch (selectedServoIndex) {
+                        case 0: targetS1 = clamp(targetS1 + amount); break;
+                        case 1: targetS2 = BoxAutoPanels.clampS2(targetS2 + amount); break;
+                        case 2: targetS3 = BoxAutoPanels.clampS3(targetS3 + amount); break;
+                        case 3: targetS4 = clamp(targetS4 + amount); break;
+                        case 4: targetS5 = clamp(targetS5 + amount); break;
+                    }
                     break;
             }
         }
@@ -566,104 +624,79 @@ public class ManualTuner extends LinearOpMode {
         int comp = BoxAutoPanels.TUNER_SELECTED_COMPARTMENT;
 
         if (mode == 0) {
-            // Cập nhật giá trị đơn lẻ
             switch (selectedServoIndex) {
-                case 0: BoxAutoPanels.S1_HOME = currentS1; break;
-                case 1: BoxAutoPanels.S2_HOME = currentS2; break;
-                case 2: BoxAutoPanels.S3_CLOSED = currentS3; break;
-                case 3: BoxAutoPanels.S4_GRAB = currentS4; break;
-                case 4: BoxAutoPanels.S5_HOME = currentS5; break;
+                case 0: BoxAutoPanels.S1_HOME = targetS1; break;
+                case 1: BoxAutoPanels.S2_HOME = targetS2; break;
+                case 2: BoxAutoPanels.S3_CLOSED = targetS3; break;
+                case 3: BoxAutoPanels.S4_GRAB = targetS4; break;
+                case 4: BoxAutoPanels.S5_HOME = targetS5; break;
             }
         } else if (mode == 9) {
-            // Cập nhật hằng số drop đơn lẻ
             switch (selectedServoIndex) {
-                case 0: BoxAutoPanels.D1_CLOSED = currentD1; break;
-                case 1: BoxAutoPanels.D2_CLOSED = currentD2; break;
-                case 2: BoxAutoPanels.D3_CLOSED = currentD3; break;
+                case 0: BoxAutoPanels.D1_CLOSED = targetD1; break;
+                case 1: BoxAutoPanels.D2_CLOSED = targetD2; break;
+                case 2: BoxAutoPanels.D3_CLOSED = targetD3; break;
             }
         } else if (mode >= 1 && mode <= 8) {
-            // Ghi nhận góc JOG thực tế tại bước đó đè vào hằng số cấu hình tương ứng
             switch (mode) {
-                case 1: // Lưu góc S5 sang cột tương ứng
-                    if (col == 1) BoxAutoPanels.S5_LEFT = currentS5;
-                    else BoxAutoPanels.S5_RIGHT = currentS5;
+                case 1: // S5 Swing cột và S1 Lift gắp
+                    if (col == 1) BoxAutoPanels.S5_LEFT = targetS5;
+                    else BoxAutoPanels.S5_RIGHT = targetS5;
+                    if (row == 1) BoxAutoPanels.S1_ROW1 = targetS1;
+                    else BoxAutoPanels.S1_ROW2 = targetS1;
                     break;
-                case 2: // Lưu góc S1 lift hạ xuống hàng tương ứng
-                    if (row == 1) BoxAutoPanels.S1_ROW1 = currentS1;
-                    else BoxAutoPanels.S1_ROW2 = currentS1;
+                case 2: // S2 Extend duỗi ra
+                    BoxAutoPanels.S2_EXTEND = targetS2;
                     break;
-                case 3: // Lưu S2_EXTEND
-                    BoxAutoPanels.S2_EXTEND = currentS2;
+                case 3: // S3 Gripper góc kẹp
+                    BoxAutoPanels.S3_CLOSED = targetS3;
                     break;
-                case 4: // Lưu S3_CLOSED
-                    BoxAutoPanels.S3_CLOSED = currentS3;
-                    break;
-                case 5: // Chênh lệch lift offset
+                case 4: // Khoảng nâng offset
                     double originalS1 = (row == 1) ? BoxAutoPanels.S1_ROW1 : BoxAutoPanels.S1_ROW2;
-                    BoxAutoPanels.S1_LIFT_UP_OFFSET = originalS1 - currentS1;
+                    BoxAutoPanels.S1_LIFT_UP_OFFSET = originalS1 - targetS1;
                     break;
-                case 6: // Lưu S2_HOME
-                    BoxAutoPanels.S2_HOME = currentS2;
+                case 5: // S2 Home (teles co về)
+                    BoxAutoPanels.S2_HOME = targetS2;
                     break;
-                case 7: // Lưu S1_HIGH_STORE hoặc S4_STORE
-                    BoxAutoPanels.S1_HIGH_STORE = currentS1;
-                    BoxAutoPanels.S4_STORE = currentS4;
-                    break;
-                case 8: // Lưu S5_STORE1-4 tương ứng compartment
+                case 6: // S1 high store, S4 store lật, S5 ngăn chứa
+                    BoxAutoPanels.S1_HIGH_STORE = targetS1;
+                    BoxAutoPanels.S4_STORE = targetS4;
                     switch (comp) {
-                        case 1: BoxAutoPanels.S5_STORE1 = currentS5; break;
-                        case 2: BoxAutoPanels.S5_STORE2 = currentS5; break;
-                        case 3: BoxAutoPanels.S5_STORE3 = currentS5; break;
-                        case 4: BoxAutoPanels.S5_STORE4 = currentS5; break;
+                        case 1: BoxAutoPanels.S5_STORE1 = targetS5; break;
+                        case 2: BoxAutoPanels.S5_STORE2 = targetS5; break;
+                        case 3: BoxAutoPanels.S5_STORE3 = targetS5; break;
+                        case 4: BoxAutoPanels.S5_STORE4 = targetS5; break;
                     }
                     break;
+                case 7: // S1 store hạ xả, S2 store vươn xả
+                    BoxAutoPanels.S1_STORE = targetS1;
+                    BoxAutoPanels.S2_STORE = targetS2;
+                    break;
+                case 8: // Các góc HOME
+                    BoxAutoPanels.S1_HOME = targetS1;
+                    BoxAutoPanels.S2_HOME = targetS2;
+                    BoxAutoPanels.S3_HOME = targetS3;
+                    BoxAutoPanels.S4_HOME = targetS4;
+                    BoxAutoPanels.S5_HOME = targetS5;
+                    break;
             }
         }
-    }
-
-    private void handlePanelsTuner() {
-        if (!BoxAutoPanels.TUNER_APPLY) return;
-        BoxAutoPanels.TUNER_APPLY = false;
-
-        double pos = BoxAutoPanels.TUNER_SERVO_POS;
-        int tunerMode = BoxAutoPanels.TUNER_MODE;
-
-        if (tunerMode == 0) {
-            int sv = BoxAutoPanels.TUNER_SELECTED_SERVO;
-            switch (sv) {
-                case 1: currentS1 = clamp(pos); break;
-                case 2: currentS2 = BoxAutoPanels.clampS2(pos); break;
-                case 3: currentS3 = BoxAutoPanels.clampS3(pos); break;
-                case 4: currentS4 = clamp(pos); break;
-                case 5: currentS5 = clamp(pos); break;
-            }
-        } else if (tunerMode == 9) {
-            int dsv = BoxAutoPanels.TUNER_SELECTED_DROP_SERVO;
-            switch (dsv) {
-                case 1: currentD1 = clamp(pos); break;
-                case 2: currentD2 = clamp(pos); break;
-                case 3: currentD3 = clamp(pos); break;
-            }
-        } else {
-            applyModeBehavior(tunerMode);
-        }
-        lastActionFeedback = "Áp dụng giá trị POS=" + pos + " từ Panels";
     }
 
     private void applyPickSetVariables(BoxAutoPanels.PickServoSet p) {
         if (p == null) return;
-        currentS1 = p.s1;
-        currentS2 = p.s2;
-        currentS3 = p.s3;
-        currentS4 = p.s4;
-        currentS5 = p.s5;
+        targetS1 = p.s1;
+        targetS2 = p.s2;
+        targetS3 = p.s3;
+        targetS4 = p.s4;
+        targetS5 = p.s5;
     }
 
     private void applyDropSetVariables(BoxAutoPanels.DropServoSet d) {
         if (d == null) return;
-        currentD1 = d.d1;
-        currentD2 = d.d2;
-        currentD3 = d.d3;
+        targetD1 = d.d1;
+        targetD2 = d.d2;
+        targetD3 = d.d3;
     }
 
     private void pcaSetServo(int channel, double position) {
@@ -674,9 +707,7 @@ public class ManualTuner extends LinearOpMode {
         try {
             java.lang.reflect.Method m = pcaRaw.getClass().getMethod("setServoPulseUs", int.class, int.class);
             m.invoke(pcaRaw, channel, pulseUs);
-        } catch (Exception e) {
-            // Ignored
-        }
+        } catch (Exception e) {}
     }
 
     private double clamp(double v) {
@@ -688,15 +719,15 @@ public class ManualTuner extends LinearOpMode {
     private String getModeName(int mode) {
         switch (mode) {
             case 0: return "🛠️ TUNE LẺ PICK SERVO";
-            case 1: return "1️⃣ READY (Xoay S4 trước, S5 sang cột)";
-            case 2: return "2️⃣ DOWN (Hạ lift S1 gắp)";
-            case 3: return "3️⃣ EXTEND (Vươn telescope S2)";
-            case 4: return "4️⃣ GRAB (Kẹp gripper S3)";
-            case 5: return "5️⃣ LIFT OFFSET (Nâng nhẹ tránh va kệ)";
-            case 6: return "6️⃣ RETRACT (Co telescope S2 về HOME)";
-            case 7: return "7️⃣ HIGH STORE (S1 lên cao, S4 ngửa ra sau)";
-            case 8: return "8️⃣ STORE COMPARTMENT (S5 xoay khay chứa, nhả)";
-            case 9: return "🛠️ TUNE LẺ DROP SERVO (Cửa xả)";
+            case 1: return "1️⃣ READY (S1 hạ gắp, S4 trước, S5 sang cột)";
+            case 2: return "2️⃣ EXTEND (CHỈ S2 vươn duỗi gắp hộp)";
+            case 3: return "3️⃣ GRAB (Gripper S3 kẹp chặt)";
+            case 4: return "4️⃣ LIFT UP (S1 nhấc nhẹ tránh vướng kệ)";
+            case 5: return "5️⃣ RETRACT (Co telescope S2 về HOME)";
+            case 6: return "6️⃣ READY STORE (Lật ngửa S4, S5 sang ngăn, S1 cực cao)";
+            case 7: return "7️⃣ STORE/THẢ (S1 hạ, S2 vươn khay robot, nhả S3)";
+            case 8: return "8️⃣ RESET HOME (Thu gọn cơ cấu gắp an toàn)";
+            case 9: return "🛠️ TUNE LẺ DROP SERVO (Cửa xả gầm)";
             case 10: return "🔒 DROP CLOSED (Đóng các nắp xả)";
             case 11: return "🔓 DROP OPEN (Mở nắp khay được chọn)";
             default: return "Chưa rõ";
@@ -706,7 +737,23 @@ public class ManualTuner extends LinearOpMode {
     private void showTelemetry() {
         telemetry.addLine("=== 🕹️ HỆ THỐNG CONFIG & TUNING THỰC TẾ ===");
         telemetry.addData("[TUNER_MODE]", BoxAutoPanels.TUNER_MODE + " -> " + getModeName(BoxAutoPanels.TUNER_MODE));
+        telemetry.addData("Tốc độ", "GIẢM 50% (Độ khỏe giữ 100%)");
         telemetry.addData("Trạng thái hành động", lastActionFeedback);
+        telemetry.addLine();
+
+        // HIỂN THỊ PHẦN CỨNG DEBUG ĐỂ KIỂM TRA SERVO BỊ NULL
+        telemetry.addLine("--- TRẠNG THÁI KẾT NỐI PHẦN CỨNG (Debug) ---");
+        telemetry.addLine(String.format(Locale.US, "s1: %s | s2: %s | s3: %s | s4: %s | s5: %s",
+                (s1 == null ? "⚠️ NULL" : "OK"),
+                (s2 == null ? "⚠️ NULL" : "OK"),
+                (s3 == null ? "⚠️ NULL" : "OK"),
+                (s4 == null ? "⚠️ NULL" : "OK"),
+                (s5 == null ? "⚠️ NULL" : "OK")
+        ));
+        telemetry.addLine(String.format(Locale.US, "drop1: %s | pca9685: %s",
+                (drop1 == null ? "⚠️ NULL" : "OK"),
+                (pcaRaw == null ? "⚠️ NULL" : "OK")
+        ));
         telemetry.addLine();
 
         int mode = BoxAutoPanels.TUNER_MODE;
@@ -715,34 +762,39 @@ public class ManualTuner extends LinearOpMode {
             String[] names = {"[S1] Lift cánh tay", "[S2] Telescope", "[S3] Gripper kẹp khay", "[S4] Wrist rotate cổ tay", "[S5] Swing cánh tay"};
             for (int i = 0; i < 5; i++) {
                 String prefix = (i == selectedServoIndex) ? "  👉 " : "     ";
-                double cur = 0;
+                double cur = 0, tar = 0;
                 switch (i) {
-                    case 0: cur = currentS1; break;
-                    case 1: cur = currentS2; break;
-                    case 2: cur = currentS3; break;
-                    case 3: cur = currentS4; break;
-                    case 4: cur = currentS5; break;
+                    case 0: cur = currentS1; tar = targetS1; break;
+                    case 1: cur = currentS2; tar = targetS2; break;
+                    case 2: cur = currentS3; tar = targetS3; break;
+                    case 3: cur = currentS4; tar = targetS4; break;
+                    case 4: cur = currentS5; tar = targetS5; break;
                 }
-                telemetry.addLine(prefix + names[i] + ": " + String.format(Locale.US, "%.3f", cur));
+                telemetry.addLine(prefix + names[i] + ": " + String.format(Locale.US, "%.3f (Đang hoạt động: %.3f)", tar, cur));
             }
-            telemetry.addLine("Lắc stick [Left Stick Y] để tăng giảm góc servo chọn");
-            telemetry.addLine("Bấm [A] / [B] để kẹp/mở nhanh S3");
         } else if (mode >= 1 && mode <= 8) {
-            telemetry.addLine("👉 CHẾ ĐỘ B: TUNE THEO BƯỚC CHU TRÌNH gắp thả:");
+            telemetry.addLine("👉 CHẾ ĐỘ B: TUNE THEO BƯỚC CHU TRÌNH THỰC TẾ (Chạy từ từ):");
             telemetry.addData("Cột đang chọn (Dpad L/R)", "Cột " + BoxAutoPanels.TUNER_SELECTED_COLUMN + " (" + (BoxAutoPanels.TUNER_SELECTED_COLUMN == 1 ? "TRÁI" : "PHẢI") + ")");
             telemetry.addData("Hàng đang chọn (Dpad U/D)", "Hàng " + BoxAutoPanels.TUNER_SELECTED_ROW + " (" + (BoxAutoPanels.TUNER_SELECTED_ROW == 1 ? "DƯỚI" : "TRÊN") + ")");
-            telemetry.addData("Khay chứa (Dpad L/R ở Step 8)", "Compartment " + BoxAutoPanels.TUNER_SELECTED_COMPARTMENT);
+            telemetry.addData("Khay chứa (Dpad L/R ở Step 6-8)", "Compartment " + BoxAutoPanels.TUNER_SELECTED_COMPARTMENT);
+            telemetry.addLine();
+            telemetry.addLine("GÓC HIỆN TẠI (Mục tiêu -> Thực tế):");
+            telemetry.addLine("  S1 (Lift) : " + String.format(Locale.US, "%.3f -> %.3f", targetS1, currentS1));
+            telemetry.addLine("  S2 (Teles): " + String.format(Locale.US, "%.3f -> %.3f", targetS2, currentS2));
+            telemetry.addLine("  S3 (Grip) : " + String.format(Locale.US, "%.3f -> %.3f", targetS3, currentS3));
+            telemetry.addLine("  S4 (Wrist): " + String.format(Locale.US, "%.3f -> %.3f", targetS4, currentS4));
+            telemetry.addLine("  S5 (Swing): " + String.format(Locale.US, "%.3f -> %.3f", targetS5, currentS5));
             telemetry.addLine();
             telemetry.addLine("SỬ DỤNG LEFT STICK Y ĐỂ CĂN CHỈNH:");
             switch (mode) {
-                case 1: telemetry.addLine("  -> Đang jog S5 Swing. Cột góc: " + String.format(Locale.US, "%.3f", currentS5)); break;
-                case 2: telemetry.addLine("  -> Đang jog S1 Hạ. Hàng góc: " + String.format(Locale.US, "%.3f", currentS1)); break;
-                case 3: telemetry.addLine("  -> Đang jog S2 Vươn. Telescope góc: " + String.format(Locale.US, "%.3f", currentS2)); break;
-                case 4: telemetry.addLine("  -> Đang jog S3 Grip. Góc kẹp: " + String.format(Locale.US, "%.3f", currentS3)); break;
-                case 5: telemetry.addLine("  -> Đang jog S1 Nhích. Góc nhích lift: " + String.format(Locale.US, "%.3f", currentS1)); break;
-                case 6: telemetry.addLine("  -> Đang jog S2 Rút. Telescope góc: " + String.format(Locale.US, "%.3f", currentS2)); break;
-                case 7: telemetry.addLine("  -> Đang jog S4 lật ngược: " + String.format(Locale.US, "%.3f", currentS4) + " (Giữ LT để jog S1 cao: " + String.format(Locale.US, "%.3f", currentS1) + ")"); break;
-                case 8: telemetry.addLine("  -> Đang jog S5 Swing ngăn chứa. Góc: " + String.format(Locale.US, "%.3f", currentS5)); break;
+                case 1: telemetry.addLine("  -> Đang jog S5 Swing. Cột góc: " + String.format(Locale.US, "%.3f", targetS5) + "\n     (Giữ LT jog S1 để hạ độ gắp chạm: " + String.format(Locale.US, "%.3f", targetS1) + ")"); break;
+                case 2: telemetry.addLine("  -> Đang jog CHỈ S2 duỗi ra gắp. Góc: " + String.format(Locale.US, "%.3f", targetS2)); break;
+                case 3: telemetry.addLine("  -> Đang jog S3 Gripper kẹp. Góc: " + String.format(Locale.US, "%.3f", targetS3)); break;
+                case 4: telemetry.addLine("  -> Đang jog S1 nhấc lên (offset). Góc: " + String.format(Locale.US, "%.3f", targetS1)); break;
+                case 5: telemetry.addLine("  -> Đang jog S2 co về (S2_HOME). Góc: " + String.format(Locale.US, "%.3f", targetS2)); break;
+                case 6: telemetry.addLine("  -> Đang jog S5 ngăn robot. Góc: " + String.format(Locale.US, "%.3f", targetS5) + "\n     (Giữ LT jog S1 lộn sau: " + String.format(Locale.US, "%.3f", targetS1) + " | Giữ RT jog S4 ngửa sau: " + String.format(Locale.US, "%.3f", targetS4) + ")"); break;
+                case 7: telemetry.addLine("  -> Đang jog S1 hạ xả khay. Góc: " + String.format(Locale.US, "%.3f", targetS1) + " (Giữ LT jog S2 vươn xả: " + String.format(Locale.US, "%.3f", targetS2) + ")"); break;
+                case 8: telemetry.addLine("  -> Đang coi các góc HOME. Bấm [Y] để lưu làm S_HOME."); break;
             }
             telemetry.addLine();
             telemetry.addLine("Bấm giữ [A] để mở thử nắp cửa xả của Compartment hiện tại");
@@ -752,24 +804,19 @@ public class ManualTuner extends LinearOpMode {
             String[] names = {"[D1] Cửa xả Hub", "[D2] Cửa xả PCA Ch1", "[D3] Cửa xả PCA Ch2"};
             for (int i = 0; i < 3; i++) {
                 String prefix = (i == selectedServoIndex) ? "  👉 " : "     ";
-                double cur = 0;
+                double cur = 0, tar = 0;
                 switch (i) {
-                    case 0: cur = currentD1; break;
-                    case 1: cur = currentD2; break;
-                    case 2: cur = currentD3; break;
+                    case 0: cur = currentD1; tar = targetD1; break;
+                    case 1: cur = currentD2; tar = targetD2; break;
+                    case 2: cur = currentD3; tar = targetD3; break;
                 }
-                telemetry.addLine(prefix + names[i] + ": " + String.format(Locale.US, "%.3f", cur));
+                telemetry.addLine(prefix + names[i] + ": " + String.format(Locale.US, "%.3f (Đang hoạt động: %.3f)", tar, cur));
             }
-            telemetry.addLine("Lắc stick [Left Stick Y] để tăng giảm góc servo chọn");
-        } else {
-            telemetry.addLine("👉 CHẾ ĐỘ CO/XẢ DROP TỰ ĐỘNG:");
-            telemetry.addData("Khay chứa (Dpad L/R)", "Compartment " + BoxAutoPanels.TUNER_SELECTED_COMPARTMENT);
-            telemetry.addLine("D1: " + String.format(Locale.US, "%.3f", currentD1) + " | D2: " + String.format(Locale.US, "%.3f", currentD2) + " | D3: " + String.format(Locale.US, "%.3f", currentD3));
         }
 
         telemetry.addLine();
         telemetry.addLine("[LB] để LÙI chế độ  |  [RB] để TIẾN chế độ");
-        telemetry.addLine("[X] khẩn cấp chuyển về HOME / reset");
+        telemetry.addLine("[X] khẩn cấp chuyển vể HOME / reset target");
         telemetry.addLine("[Y] lưu giá trị đang tune vào file cấu hình");
 
         telemetry.addLine();
