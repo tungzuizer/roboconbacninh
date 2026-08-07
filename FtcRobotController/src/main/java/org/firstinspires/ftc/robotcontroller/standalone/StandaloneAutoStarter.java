@@ -54,14 +54,29 @@ public final class StandaloneAutoStarter {
             OpModeManagerImpl opModeManager = waitForOpModeManager();
             if (opModeManager == null) return;
 
-            HardwareMap hardwareMap = waitForHardwareMap(opModeManager);
-            if (hardwareMap == null) return;
+            RobotLog.ii(TAG, "StandaloneAutoStarter running; polling for HardwareMap and start button...");
 
-            DigitalChannel startButton = getDigitalInput(hardwareMap, StandaloneAutoConfig.START_BUTTON_NAME);
-            DigitalChannel sideSwitch = getDigitalInput(hardwareMap, StandaloneAutoConfig.SIDE_SWITCH_NAME);
-            if (startButton == null || sideSwitch == null) return;
+            DigitalChannel startButton = null;
+            DigitalChannel sideSwitch = null;
 
-            boolean blueSelected = sideSwitch.getState() == StandaloneAutoConfig.BLUE_SWITCH_ON_STATE;
+            // Vòng lặp chờ HardwareMap và công tắc nạp xong từ Control Hub
+            while (running && startButton == null) {
+                HardwareMap hardwareMap = opModeManager.getHardwareMap();
+                if (hardwareMap != null) {
+                    startButton = getDigitalInput(hardwareMap, StandaloneAutoConfig.START_BUTTON_NAME);
+                    sideSwitch = getDigitalInput(hardwareMap, StandaloneAutoConfig.SIDE_SWITCH_NAME);
+                }
+                if (startButton == null) {
+                    sleepPollInterval();
+                }
+            }
+
+            if (!running || startButton == null) return;
+
+            boolean blueSelected = (sideSwitch != null)
+                    ? (sideSwitch.getState() == StandaloneAutoConfig.BLUE_SWITCH_ON_STATE)
+                    : true;
+
             StandaloneAutoRuntime.Side side = blueSelected
                     ? StandaloneAutoRuntime.Side.BLUE
                     : StandaloneAutoRuntime.Side.RED;
@@ -70,15 +85,16 @@ public final class StandaloneAutoStarter {
                     : StandaloneAutoConfig.RED_OP_MODE_NAME;
 
             StandaloneAutoRuntime.setSelected(side, opModeName);
-            RobotLog.ii(TAG, "Standalone side=%s opMode=%s", side, opModeName);
+            RobotLog.ii(TAG, "Standalone selected side=%s opMode=%s", side, opModeName);
 
+            // Nạp OpMode vào bộ nhớ mà KHÔNG CẦN Driver Hub bấm nút
             opModeManager.initOpMode(opModeName);
             if (!waitForInitTransition(opModeManager, opModeName)) {
                 RobotLog.ee(TAG, "Timed out waiting for OpMode INIT: %s", opModeName);
                 return;
             }
 
-            RobotLog.ii(TAG, "Waiting for physical start button: %s", StandaloneAutoConfig.START_BUTTON_NAME);
+            RobotLog.ii(TAG, "OpMode INIT success! Waiting for physical start button...");
             waitForStartButton(startButton);
             if (!running) return;
 
@@ -115,12 +131,30 @@ public final class StandaloneAutoStarter {
     private DigitalChannel getDigitalInput(HardwareMap hardwareMap, String deviceName) {
         try {
             DigitalChannel channel = hardwareMap.get(DigitalChannel.class, deviceName);
-            channel.setMode(DigitalChannel.Mode.INPUT);
-            return channel;
-        } catch (RuntimeException e) {
-            RobotLog.ee(TAG, e, "Missing Digital Input in Robot Config: %s", deviceName);
-            return null;
+            if (channel != null) {
+                channel.setMode(DigitalChannel.Mode.INPUT);
+                return channel;
+            }
+        } catch (RuntimeException ignored) {}
+
+        // Fallback name search for Port 3 and Port 0
+        String[] fallbacks;
+        if ("touch3".equals(deviceName) || "standaloneStart".equals(deviceName) || "startButton".equals(deviceName)) {
+            fallbacks = new String[]{"touch3", "startButton", "port3", "digital3", "switch3", "standaloneStart"};
+        } else {
+            fallbacks = new String[]{"touch0", "allianceSwitch", "port0", "digital0", "switch0", "sideSwitch"};
         }
+        for (String fallbackName : fallbacks) {
+            try {
+                DigitalChannel channel = hardwareMap.get(DigitalChannel.class, fallbackName);
+                if (channel != null) {
+                    channel.setMode(DigitalChannel.Mode.INPUT);
+                    return channel;
+                }
+            } catch (RuntimeException ignored) {}
+        }
+
+        return null;
     }
 
     private boolean waitForInitTransition(OpModeManagerImpl opModeManager, String opModeName) {
@@ -136,8 +170,11 @@ public final class StandaloneAutoStarter {
 
     private void waitForStartButton(DigitalChannel startButton) {
         long pressedSince = -1;
+        boolean initialChoiceState = startButton.getState();
         while (running) {
-            boolean pressed = startButton.getState() == StandaloneAutoConfig.START_BUTTON_PRESSED_STATE;
+            boolean currentState = startButton.getState();
+            // Triggered if state matches target pressed state (Active LOW) OR if state flipped from initial
+            boolean pressed = (currentState == StandaloneAutoConfig.START_BUTTON_PRESSED_STATE) || (currentState != initialChoiceState);
             long now = System.currentTimeMillis();
 
             if (pressed) {

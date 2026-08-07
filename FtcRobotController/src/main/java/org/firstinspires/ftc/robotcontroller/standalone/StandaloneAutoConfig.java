@@ -13,10 +13,10 @@ public final class StandaloneAutoConfig {
     public static final boolean ENABLED = true;
 
     /** Robot Configuration name for the physical start button Digital Input. */
-    public static final String START_BUTTON_NAME = "standaloneStart";
+    public static final String START_BUTTON_NAME = "touch3";
 
     /** Robot Configuration name for the Red/Blue selector Digital Input. */
-    public static final String SIDE_SWITCH_NAME = "sideSwitch";
+    public static final String SIDE_SWITCH_NAME = "touch0";
 
     /**
      * Expected DigitalChannel state when the start button is pressed.
@@ -30,10 +30,10 @@ public final class StandaloneAutoConfig {
     public static final boolean BLUE_SWITCH_ON_STATE = true;
 
     /** OpMode selected when sideSwitch is OFF / Red. */
-    public static final String RED_OP_MODE_NAME = "12 Box Auto - Ivy";
+    public static final String RED_OP_MODE_NAME = "Blue Robot Auto (Dual-Pick No S5)";
 
     /** OpMode selected when sideSwitch is ON / Blue. */
-    public static final String BLUE_OP_MODE_NAME = "12 Box Auto - Ivy";
+    public static final String BLUE_OP_MODE_NAME = "Blue Robot Auto (Dual-Pick No S5)";
 
     /** Poll interval while waiting for Robot Controller setup and button press. */
     public static final long POLL_INTERVAL_MS = 20;

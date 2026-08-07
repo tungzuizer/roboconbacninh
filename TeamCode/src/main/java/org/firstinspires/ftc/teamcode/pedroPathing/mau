@@ -1,0 +1,81 @@
+⚙️ TIỀN TRẬN ĐẤU (Khởi tạo - Init)
+1.
+Cơ cấu tay gắp được thu gọn về vị trí an toàn (HOME).
+2.
+Cửa xả dưới gầm Drop 1 và Drop 2 (PCA) được ĐÓNG CHẶT để tạo mặt đáy đỡ hộp.
+3.
+Cận tốc độ chạy của robot bị khóa ở 40% (follower.setMaxPower(0.4)) để di chuyển êm, siêu khỏe và chống trôi.
+4.
+Chờ người tài xế bấm nút PLAY (Bắt đầu trận).
+🚀 GIAI ĐOẠN 1: Chuẩn bị & Nhận diện bao quát
+1.
+Lập tức MỞ RỘNG cửa phụ hứng hộp bụng S5 (S5_OPEN).
+2.
+Robot tấp vào một Điểm Quan Sát (Viewpoint - P8).
+3.
+Đứng yên tại P8, dùng camera quẹt ảnh đưa qua YOLO nhận diện luôn một lúc 4 hộp trên kệ.
+◦
+Code sẽ âm thầm ghi nhớ: Hộp 1 Tầng 2 là loại gì, Hộp 2 Tầng 2 là loại gì, Hộp 1 Tầng 1 là loại gì, Hộp 2 Tầng 1 là loại gì.
+📦 GIAI ĐOẠN 2: LƯỢT 1 (Kéo 2 hộp Tầng 2 - Row 2)
+1.
+Robot chạy từ Điểm Quan Sát (P8) vào sát mặt Kệ số 1 (Shelf 1).
+2.
+Chiến dịch gắp xả 14 bước:
+◦
+S4 xoay cổ ngửa ra vị trí chĩa ra phía trước.
+◦
+S1 nâng khay theo đúng độ cao hộp Tầng 2.
+◦
+S2 vươn trục mỏ kẹp ra đằng trước tiến sát vào kệ.
+◦
+S3 bấu kẹp chặt lại (gắp 1 phát 2 hộp cùng 1 lúc).
+◦
+S1 nhấc bổng hộp lên một tí xíu để tránh ma sát quẹt vào kệ.
+◦
+S2 thu cần bệ gắp về lại người robot.
+◦
+S1 đẩy tay nâng vút dọc lên vị trí CAO NHẤT (kịch trần).
+◦
+S4 lật cái cổ gáy ngửa 2 hộp xoay ra giấu sau lưng robot.
+◦
+S2 lại thò trục đẩy mỏ vươn tít ra phía đằng sau lưng.
+◦
+S1 hạ trần thấp xuống, dí tay vừa sát miệng phễu của cơ cấu rổ bụng (S5 đang mở rộng từ đầu).
+◦
+S3 Há mỏ kẹp, thả 2 cục gạch rớt tụt xuống bụng 2 ngăn ở gầm chờ.
+◦
+S2 rút trục thu về.
+◦
+Các hệ thống tay gắp reset về lại HOME thư giãn cứng.
+3.
+Chuyến đi vào nhà máy Lượt 1:
+◦
+Truy vấn bộ nhớ YOLO xem hộp 1 là loại mấy -> Phóng robot tới P4/P5/P6/P7 tương ứng.
+◦
+Tới nơi (Ổn định xe), Mở cửa gầm Drop 1 trút lộ thiên cục gạch số 1 xuống sàn -> Chờ nửa giây -> Đóng Nắp.
+◦
+Ngay lập tức đi lách né qua tọa độ EXTRA DODGE (P9/P10/P11/P12) riêng biệt của chính nhà máy đó để né cái hộp vừa ỉa ra.
+◦
+Lách xong -> Truy vấn loại của cục gập số 2 -> Lái phi tới tọa độ Nhà máy tiếp theo.
+◦
+Tới nơi (Ổn định xe), Mở nắp Drop 2 (mạch PCA) trút xuống lạch 2 -> Đóng nắp PCA lại.
+◦
+Lách lùi qua tiếp về một điểm DODGE tránh tảng.
+📦 GIAI ĐOẠN 3: LƯỢT 2 (Kéo 2 hộp Tầng 1 - Row 1)
+1.
+Robot tự quay xe về áp sát Kệ số 2 (Shelf 2).
+2.
+Chạy lại đoạn múa 14 bước nhưng lần này S1 sẽ dừng để vươn mỏ kẹp ở Độ cao của Hộp Tầng 1 (Dưới cùng).
+◦
+Cắp 2 mỏ -> lật lưng múc qua miệng -> thả ngàm cái rột xuống.
+3.
+Chuyến đi vào nhà máy Lượt 2:
+◦
+Truy vấn YOLO (lưu từ đầu trận) xem Hộp số 1 của dưới tầng 1 loại mấy -> Lái tới Nhà máy đó -> Mở nắp Drop 1 thả cục 1 -> Lách Dodge trượt qua một bên.
+◦
+Coi cục số 2 của tầng 1 loại mấy -> Lái tiếp đến trạm kế -> Mở Drop 2 thả nốt cặn. -> Nhích mông lách né DODGE lần cuối.
+🏁 GIAI ĐOẠN 4: Hết giờ về tổ
+•
+Robot quay xe, chạy lướt mượt mà về thẳng điểm Đề-Pa gốc của trận đấu (P0).
+•
+Kết thúc Opmode (Stop)
