@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.hardware.configuration.annotations.I2cDeviceType;
  *
  * Cách dùng cơ bản trong OpMode:
  *   PCA9685 pca = hardwareMap.get(PCA9685.class, "pca9685");
- *   pca.setServoAngle(0, 90);   // kênh 0, góc 90 độ
+ *   pca.setServoAngle(0, 90);   // kênh 0,     góc 90 độ
  *
  * Lưu ý: PCA9685 hoạt động ở tần số PWM ~50Hz cho servo tiêu chuẩn.
  */

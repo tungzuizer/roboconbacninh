@@ -24,23 +24,24 @@
                 .forwardZeroPowerAcceleration(-72.93326609712362)
                 .lateralZeroPowerAcceleration(-64.4756501207455)
 
-
                 // ===== Translational PIDF (vị trí x-y) =====
-                // PIDF chính: dùng khi robot còn CÁCH3 XA target hơn translationalPIDFSwitch (inch)
-                .translationalPIDFCoefficients(new PIDFCoefficients(0.04, 0, 0.000001, 0.002))
-                // Ngưỡng (inch) để chuyển từ PIDF chính sang PIDF phụ. TUNE: thử 3-6 inch.
-                .translationalPIDFSwitch(3)
-                // PIDF phụ: dùng khi robot đã GẦN target (< switch), cần P cao hơn để bám chính xác.
-                // TUNE: nếu robot dừng hụt/lệch vị trí cuối, tăng P. Nếu rung/dao động quanh target, giảm P.
-                .secondaryTranslationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.000001, 0.04))
-
+                // PIDF chính: dùng khi robot còn CÁCH XA target hơn translationalPIDFSwitch (inch)
+                // GIẢM P xuống (từ 0.04 -> 0.02) để tránh việc robot bốc đầu/tăng tốc quá mạnh khi điểm xa.
+                .translationalPIDFCoefficients(new PIDFCoefficients(0.02, 0, 0.000001, 0.002))
+                
+                // Ngưỡng (inch) chuyển từ PIDF chính (mềm) sang PIDF phụ (cứng/khỏe). 
+                // Tăng lên 4 inch để robot sớm "gồng" kềm hãm tốc độ trước khi vào điểm.
+                .translationalPIDFSwitch(4)
+                
+                // PIDF phụ: Dùng khi GẦN target. Tăng P = 0.15 và I = 0.01 để có lực KHỎE kìm hãm vị trí
+                .secondaryTranslationalPIDFCoefficients(new PIDFCoefficients(0.15, 0.01, 0.005, 0.05))
 
                 // ===== Heading PIDF (góc xoay) =====
-                .headingPIDFCoefficients(new PIDFCoefficients(0.5, 0, 0.000001, 0.00001))
-                // PIDF phụ cho heading khi góc lệch đã nhỏ, cần chính xác cao.
-                // TUNE: nếu robot xoay hụt góc cuối, tăng P. Nếu rung lắc khi gần đúng góc, giảm P.
-                .headingPIDFSwitch(0.2)
-                .secondaryHeadingPIDFCoefficients(new PIDFCoefficients(2, 0, 0.000001, 0.03))
+                .headingPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.000001, 0.00001))
+                // Bắt góc cứng sớm hơn ở 0.3 radian (tầm 17 độ)
+                .headingPIDFSwitch(0.3)
+                // Tăng nhẹ P và I để khóa chết đầu hướng robot
+                .secondaryHeadingPIDFCoefficients(new PIDFCoefficients(1.5, 0.01, 0.000001, 0.05))
 
 
                 // ===== Drive PIDF (lực kéo bánh xe theo path) =====
@@ -48,8 +49,17 @@
                // .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.0011, 0, 0.001, 0.6, 0.008))
                 // Ngưỡng vận tốc để chuyển sang PIDF phụ. TUNE theo xVelocity/yVelocity thực tế của bạn.
                // .drivePIDFSwitch(6)
-                // PIDF phụ: dùng khi vận tốc thấp / gần target, cần bám chính xác hơn.
-                .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.004, 0, 0.000001, 1, 0.001))
+                // PIDF phụ: dùng khi vận tốc thấp / gần tar
+                //
+                //
+                //
+                //
+                //
+                //
+                //
+                // get, cần bám chính xác hơn.
+                // GIẢM FEEDFORWARD (kV) từ 1.0 xuống 0.6 và P xuống 0.002 để tránh PIDF vọt lên max power
+                .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.002, 0, 0.000001, 0.6, 0.001))
               //  .drivePIDFSwitch(4)
             //    .secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.0011, 0, 0.001, 0.6, 0.008))
 
@@ -59,8 +69,10 @@
 
 
         public static MecanumConstants driveConstants = new MecanumConstants()
-                // Giữ nguyên maxPower = 0.5 theo yêu cầu của bạn (robot chạy ở 50% công suất)
-                .maxPower(0.5)
+                // MaxPower của phần cứng: KHÔNG NÊN KHÓA cứng ở đây dưới 0.5 vì làm giảm feedforward PID.
+                // 1.0 là công suất chuẩn để PID tính toán chính xác lực. 
+                // Ta sẽ khóa tốc độ 40% ở hàm follower.setMaxPower(0.4) ở trong BLUEROBOT.java.
+                .maxPower(1.0)
 
 
                 .rightFrontMotorName("rightFront")
@@ -77,8 +89,8 @@
                 // SAU KHI maxPower đã được set = 0.5. Nếu bạn tune chúng lúc maxPower = 1.0
                 // thì follower sẽ nghĩ robot nhanh hơn thực tế => robot chạy max power suốt path,
                 // không giảm tốc đúng, và bạn sẽ thấy nó "vẫn nhanh" dù maxPower đã giảm.
-                .xVelocity(44.3096238984826)   // <-- cần đo lại với maxPower(0.5)
-                .yVelocity(37.11373540923351)    // <-- cần đo lại với maxPower(0.5)
+                .xVelocity(84.3096238984826)   // <-- cần đo lại với maxPower(0.5)
+                .yVelocity(67.11373540923351)    // <-- cần đo lại với maxPower(0.5)
                 ;
 
 
@@ -91,7 +103,7 @@
                 .hardwareMapName("pinpoint")
                 .customEncoderResolution(4096 / (2 * Math.PI * 17.5)) // ticks/mm — luôn là mm bất kể distanceUnit ở trên
                 .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
-                .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
+                .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
                 .yawScalar(1.000322)
 
                 ;   //yawScalar = 3600 / (giá trị Pinpoint đo được)
@@ -103,14 +115,14 @@
 
 
         public static PathConstraints pathConstraints = new PathConstraints(
-                0.995,   // tValueConstraint
-                0.1,     // velocityConstraint
-                0.1,     // translationalConstraint
+                0.8,     // **GIẢM MAX SPEED_Multiplier / tValueConstraint**: Giới hạn tốc độ max trên đường thẳng
+                0.2,     // **velocityConstraint**: có thể tăng nhẹ lên 0.2 để đỡ giật
+                0.2,     // **translationalConstraint**: Tăng nhẹ để PID tránh bị giật
                 0.009,   // headingConstraint
                 50,      // timeoutConstraint
                 1.0,     // brakingStrength
                 10,      // BEZIER_CURVE_SEARCH_LIMIT (giữ nguyên 10)
-                0.85     // brakingStart
+                0.15     // **brakingStart**: bắt đầu phanh SỚM HƠN (từ 0.85 -> 0.15 để phanh dài ra)
         );
 
 

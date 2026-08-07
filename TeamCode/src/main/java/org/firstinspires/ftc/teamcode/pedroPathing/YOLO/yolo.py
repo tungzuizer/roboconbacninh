@@ -97,8 +97,8 @@ GRID_SPLIT_Y_NORM = 0.50
 # True: hàng 1 ở trên, hàng 2 ở dưới.
 ROW_1_IS_TOP = True
 
-# Chụp đúng 5 ảnh; ít nhất 3 phiếu giống nhau mới được xem là hợp lệ.
-VOTE_FRAME_COUNT = 5
+# Chụp đúng 15 ảnh; phải đồng nhất trên 50% số ảnh mới đưa ra kết luận.
+VOTE_FRAME_COUNT = 15
 MIN_MAJORITY_VOTES = VOTE_FRAME_COUNT // 2 + 1
 FRAME_INTERVAL_S = 0.08
 CAMERA_WARMUP_S = 0.40
